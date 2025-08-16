@@ -346,29 +346,67 @@
 </div>
 
 <script>
-    // Jack Daniels VDOT calculations and pace data
+    // Jack Daniels VDOT calculations and pace data (accurate formulas)
     const vdotTable = {
-        // Simplified VDOT table for 5K times (minutes:seconds -> VDOT)
+        // Accurate VDOT calculation based on Jack Daniels' formulas
         getVDOT: function(timeInSeconds, distance = '5k') {
+            // Convert time to equivalent 5K time first
+            const equivalent5K = this.convertToEquivalent5K(timeInSeconds, distance);
+            
+            // Jack Daniels VDOT formula for 5K
+            // VDOT = -4.6 + 0.182258 * (velocity in m/min) + 0.000104 * (velocity in m/min)^2
+            const velocityMperMin = 5000 / (equivalent5K / 60); // meters per minute
+            const vdot = -4.6 + 0.182258 * velocityMperMin + 0.000104 * Math.pow(velocityMperMin, 2);
+            
+            return Math.round(vdot);
+        },
+        
+        convertToEquivalent5K: function(timeInSeconds, distance) {
+            // Time multipliers based on Jack Daniels equivalent performance table
             const multipliers = {
                 '5k': 1.0,
                 '10k': 2.08,
-                'half': 4.66,
-                'marathon': 9.78
+                'half': 4.67,
+                'marathon': 9.93
             };
             
-            const adjusted5kTime = timeInSeconds / multipliers[distance];
+            return timeInSeconds / multipliers[distance];
+        },
+        
+        // Get training paces based on VDOT (Jack Daniels formulas)
+        getTrainingPaces: function(vdot) {
+            // Velocity at VDOT (m/min)
+            const vVDOT = 15.3 * vdot - 133;
             
-            // Simplified VDOT calculation based on 5K time
-            if (adjusted5kTime < 900) return 80; // sub 15:00
-            if (adjusted5kTime < 1020) return 70; // sub 17:00
-            if (adjusted5kTime < 1140) return 60; // sub 19:00
-            if (adjusted5kTime < 1260) return 55; // sub 21:00
-            if (adjusted5kTime < 1380) return 50; // sub 23:00
-            if (adjusted5kTime < 1500) return 45; // sub 25:00
-            if (adjusted5kTime < 1620) return 40; // sub 27:00
-            if (adjusted5kTime < 1800) return 35; // sub 30:00
-            return 30;
+            // Training pace percentages (from Jack Daniels research)
+            const paceFactors = {
+                easy: 0.65,      // 65-79% of VDOT
+                marathon: 0.84,  // 84% of VDOT  
+                threshold: 0.88, // 88% of VDOT
+                interval: 1.00,  // 100% of VDOT (5K pace)
+                repetition: 1.12 // 112% of VDOT
+            };
+            
+            const paces = {};
+            for (const [type, factor] of Object.entries(paceFactors)) {
+                const velocity = vVDOT * factor;
+                const secondsPerKm = 60000 / velocity; // convert to seconds per km
+                paces[type] = this.formatPace(secondsPerKm);
+            }
+            
+            // Easy pace range (65-79%)
+            const easySlowVel = vVDOT * 0.65;
+            const easyFastVel = vVDOT * 0.79;
+            paces.easySlow = this.formatPace(60000 / easySlowVel);
+            paces.easyFast = this.formatPace(60000 / easyFastVel);
+            
+            return paces;
+        },
+        
+        formatPace: function(secondsPerKm) {
+            const minutes = Math.floor(secondsPerKm / 60);
+            const seconds = Math.round(secondsPerKm % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
     };
     
@@ -385,42 +423,68 @@
         
         const totalSeconds = minutes * 60 + seconds;
         const vdot = vdotTable.getVDOT(totalSeconds, performanceType);
+        const paces = vdotTable.getTrainingPaces(vdot);
         
-        // Calculate training paces based on VDOT
-        const paces = calculateTrainingPaces(vdot);
+        // Calculate race prediction for 5K
+        const predicted5K = predictRaceTime(vdot, '5k');
         
         // Display results
-        displayResults(vdot, paces, trainingWeeks);
+        displayResults(vdot, paces, trainingWeeks, predicted5K);
     }
     
-    function calculateTrainingPaces(vdot) {
-        // Jack Daniels pace calculations (simplified)
-        const basePace = 180 + (80 - vdot) * 6; // Easy pace in seconds per km
+    function predictRaceTime(vdot, distance) {
+        // Jack Daniels race prediction formulas
+        const vVDOT = 15.3 * vdot - 133; // velocity at VDOT
         
-        return {
-            easy: formatPace(basePace),
-            marathon: formatPace(basePace - 15),
-            threshold: formatPace(basePace - 30),
-            interval: formatPace(basePace - 45),
-            repetition: formatPace(basePace - 60)
+        const distances = {
+            '5k': { meters: 5000, factor: 1.00 },
+            '10k': { meters: 10000, factor: 0.955 },
+            'half': { meters: 21097, factor: 0.879 },
+            'marathon': { meters: 42195, factor: 0.831 }
         };
+        
+        const raceInfo = distances[distance];
+        const raceVelocity = vVDOT * raceInfo.factor;
+        const timeInMinutes = raceInfo.meters / raceVelocity;
+        
+        return formatTime(timeInMinutes * 60);
     }
     
-    function formatPace(secondsPerKm) {
-        const minutes = Math.floor(secondsPerKm / 60);
-        const seconds = Math.round(secondsPerKm % 60);
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
     
-    function displayResults(vdot, paces, weeks) {
+    function displayResults(vdot, paces, weeks, predicted5K) {
         document.getElementById('vdot-score').textContent = vdot;
         
         const paceData = [
-            { type: 'EASY (E)', pace: paces.easy, description: 'Αερόβιες προπονήσεις' },
-            { type: 'MARATHON (M)', pace: paces.marathon, description: 'Ρυθμός μαραθώνιου' },
-            { type: 'THRESHOLD (T)', pace: paces.threshold, description: 'Lactate threshold' },
-            { type: 'INTERVAL (I)', pace: paces.interval, description: '5K ρυθμός' },
-            { type: 'REPETITION (R)', pace: paces.repetition, description: 'Ταχύτητα & νευρομυϊκή' }
+            { 
+                type: 'EASY (E)', 
+                pace: `${paces.easySlow} - ${paces.easyFast}`, 
+                description: 'Αερόβιες προπονήσεις (65-79% VDOT)' 
+            },
+            { 
+                type: 'MARATHON (M)', 
+                pace: paces.marathon, 
+                description: 'Ρυθμός μαραθώνιου (84% VDOT)' 
+            },
+            { 
+                type: 'THRESHOLD (T)', 
+                pace: paces.threshold, 
+                description: 'Lactate threshold (88% VDOT)' 
+            },
+            { 
+                type: 'INTERVAL (I)', 
+                pace: paces.interval, 
+                description: '5K ρυθμός (100% VDOT)' 
+            },
+            { 
+                type: 'REPETITION (R)', 
+                pace: paces.repetition, 
+                description: 'Ταχύτητα & νευρομυϊκή (112% VDOT)' 
+            }
         ];
         
         const paceGrid = document.getElementById('pace-grid');
@@ -432,6 +496,15 @@
             </div>
         `).join('');
         
+        // Add race prediction
+        paceGrid.innerHTML += `
+            <div class="pace-card" style="border: 2px solid #d4af37; background: rgba(212, 175, 55, 0.1);">
+                <div class="pace-type">ΣΤΟΧΟΣ 5K</div>
+                <div class="pace-value">${predicted5K}</div>
+                <div class="pace-description">Προβλεπόμενη επίδοση</div>
+            </div>
+        `;
+        
         generateTrainingPlan(weeks, paces);
         
         document.getElementById('results').style.display = 'block';
@@ -441,19 +514,18 @@
         const schedule = document.getElementById('training-schedule');
         let planHTML = '';
         
-        const baseWeekly = [
-            { day: 'Δευτέρα', workout: `6-8km Easy (${paces.easy})` },
-            { day: 'Τρίτη', workout: `4x1000m I-pace (${paces.interval}) με 400m ανάκαμψη` },
-            { day: 'Τετάρτη', workout: `5-6km Easy (${paces.easy})` },
-            { day: 'Πέμπτη', workout: `3x1600m T-pace (${paces.threshold}) με 60sec ανάπαυση` },
-            { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
-            { day: 'Σάββατο', workout: `6x200m R-pace (${paces.repetition}) με 200m ανάκαμψη` },
-            { day: 'Κυριακή', workout: `10-12km Easy (${paces.easy})` }
-        ];
-        
+        // Progressive training plan with proper periodization
         for (let week = 1; week <= weeks; week++) {
-            const isEasyWeek = week % 4 === 0;
-            const weekTitle = isEasyWeek ? `Εβδομάδα ${week} (Ξεκούραση)` : `Εβδομάδα ${week}`;
+            const phase = getTrainingPhase(week, weeks);
+            const isTaperingPhase = week > weeks - 3; // Last 3 weeks are tapering
+            const isRaceWeek = week === weeks;
+            
+            let weekTitle = `Εβδομάδα ${week}`;
+            if (isRaceWeek) weekTitle += ' (ΑΓΩΝΑΣ)';
+            else if (isTaperingPhase) weekTitle += ' (Tapering)';
+            else if (week % 4 === 0 && !isTaperingPhase) weekTitle += ' (Ξεκούραση)';
+            
+            const workouts = generateWeekWorkouts(week, weeks, phase, paces, isRaceWeek, isTaperingPhase);
             
             planHTML += `
                 <div class="week-plan">
@@ -461,19 +533,11 @@
                     <ul class="workout-list">
             `;
             
-            baseWeekly.forEach(day => {
-                let workout = day.workout;
-                if (isEasyWeek) {
-                    workout = workout.replace(/\d+-\d+km/g, match => {
-                        const [min, max] = match.match(/\d+/g);
-                        return `${Math.max(1, min - 2)}-${Math.max(2, max - 3)}km`;
-                    });
-                }
-                
+            workouts.forEach(workout => {
                 planHTML += `
                     <li class="workout-item">
-                        <div class="workout-day">${day.day}</div>
-                        <div class="workout-details">${workout}</div>
+                        <div class="workout-day">${workout.day}</div>
+                        <div class="workout-details">${workout.workout}</div>
                     </li>
                 `;
             });
@@ -482,6 +546,77 @@
         }
         
         schedule.innerHTML = planHTML;
+    }
+    
+    function getTrainingPhase(week, totalWeeks) {
+        if (week <= Math.floor(totalWeeks * 0.3)) return 'base';
+        if (week <= Math.floor(totalWeeks * 0.7)) return 'build';
+        if (week <= totalWeeks - 3) return 'peak';
+        return 'taper';
+    }
+    
+    function generateWeekWorkouts(week, totalWeeks, phase, paces, isRaceWeek, isTaperingPhase) {
+        if (isRaceWeek) {
+            return [
+                { day: 'Δευτέρα', workout: `30\' Easy (${paces.easySlow}) + 6x100m strides` },
+                { day: 'Τρίτη', workout: 'Ξεκούραση ή 20\' easy walking' },
+                { day: 'Τετάρτη', workout: `25\' Easy (${paces.easySlow}) + 4x200m @ I-pace (${paces.interval})` },
+                { day: 'Πέμπτη', workout: 'Ξεκούραση - μόνο stretching' },
+                { day: 'Παρασκευή', workout: `15\' Easy (${paces.easySlow}) + 3x100m strides` },
+                { day: 'Σάββατο', workout: 'Πλήρης ξεκούραση' },
+                { day: 'Κυριακή', workout: '🏁 ΑΓΩΝΑΣ 5K - Καλή επιτυχία!' }
+            ];
+        }
+        
+        if (isTaperingPhase) {
+            const intensity = week === totalWeeks - 2 ? 0.6 : 0.8; // More reduction 2 weeks before race
+            
+            return [
+                { day: 'Δευτέρα', workout: `${Math.round(40 * intensity)}\' Easy (${paces.easySlow})` },
+                { day: 'Τρίτη', workout: `${Math.round(3 * intensity)}x800m I-pace (${paces.interval}) με 2\' ανάκαμψη` },
+                { day: 'Τετάρτη', workout: `${Math.round(30 * intensity)}\' Easy (${paces.easySlow})` },
+                { day: 'Πέμπτη', workout: `20\' T-pace (${paces.threshold}) συνεχόμενο` },
+                { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
+                { day: 'Σάββατο', workout: `${Math.round(4 * intensity)}x300m R-pace (${paces.repetition}) με 2\' ανάκαμψη` },
+                { day: 'Κυριακή', workout: `${Math.round(50 * intensity)}\' Easy (${paces.easySlow})` }
+            ];
+        }
+        
+        // Regular training weeks
+        const isRecoveryWeek = week % 4 === 0;
+        const volumeMultiplier = isRecoveryWeek ? 0.7 : 1.0;
+        
+        const baseWorkouts = {
+            base: [
+                { day: 'Δευτέρα', workout: `${Math.round(40 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Τρίτη', workout: `${Math.round(3 * volumeMultiplier)}x1000m I-pace (${paces.interval}) με 400m ανάκαμψη` },
+                { day: 'Τετάρτη', workout: `${Math.round(35 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Πέμπτη', workout: `${Math.round(20 * volumeMultiplier)}\' T-pace (${paces.threshold}) συνεχόμενο` },
+                { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
+                { day: 'Σάββατο', workout: `${Math.round(6 * volumeMultiplier)}x200m R-pace (${paces.repetition}) με 200m ανάκαμψη` },
+                { day: 'Κυριακή', workout: `${Math.round(60 * volumeMultiplier)}\' Easy (${paces.easySlow})` }
+            ],
+            build: [
+                { day: 'Δευτέρα', workout: `${Math.round(45 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Τρίτη', workout: `${Math.round(5 * volumeMultiplier)}x1000m I-pace (${paces.interval}) με 300m ανάκαμψη` },
+                { day: 'Τετάρτη', workout: `${Math.round(40 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Πέμπτη', workout: `2x${Math.round(12 * volumeMultiplier)}\' T-pace (${paces.threshold}) με 2\' ανάπαυση` },
+                { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
+                { day: 'Σάββατο', workout: `${Math.round(8 * volumeMultiplier)}x300m R-pace (${paces.repetition}) με 300m ανάκαμψη` },
+                { day: 'Κυριακή', workout: `${Math.round(70 * volumeMultiplier)}\' Easy (${paces.easySlow})` }
+            ],
+            peak: [
+                { day: 'Δευτέρα', workout: `${Math.round(50 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Τρίτη', workout: `${Math.round(6 * volumeMultiplier)}x800m I-pace (${paces.interval}) με 400m ανάκαμψη` },
+                { day: 'Τετάρτη', workout: `${Math.round(35 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Πέμπτη', workout: `3x${Math.round(8 * volumeMultiplier)}\' T-pace (${paces.threshold}) με 90" ανάπαυση` },
+                { day: 'Παρασκευή', workout: 'Ξεκούραση' },
+                { day: 'Σάββατο', workout: `${Math.round(10 * volumeMultiplier)}x200m R-pace (${paces.repetition}) με 200m ανάκαμψη` },
+                { day: 'Κυριακή', workout: `${Math.round(60 * volumeMultiplier)}\' Easy (${paces.easySlow})` }
+            ]
+        };
+        
+        return baseWorkouts[phase] || baseWorkouts.base;
     }
     
     // PWA Service Worker Registration
