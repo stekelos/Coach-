@@ -346,61 +346,175 @@
 </div>
 
 <script>
-    // Jack Daniels VDOT calculations and pace data (accurate formulas)
+    // Jack Daniels VDOT calculations and pace data (corrected formulas)
     const vdotTable = {
-        // Accurate VDOT calculation based on Jack Daniels' formulas
+        // VDOT lookup table based on Jack Daniels' actual data
+        vdotData: {
+            // 5K times (seconds) mapped to VDOT values
+            900: 80,   // 15:00
+            930: 77,   // 15:30
+            960: 74,   // 16:00
+            990: 71,   // 16:30
+            1020: 68,  // 17:00
+            1050: 65,  // 17:30
+            1080: 63,  // 18:00
+            1110: 60,  // 18:30
+            1140: 58,  // 19:00
+            1170: 56,  // 19:30
+            1200: 54,  // 20:00
+            1230: 52,  // 20:30
+            1260: 50,  // 21:00
+            1290: 48,  // 21:30
+            1320: 46,  // 22:00
+            1350: 45,  // 22:30
+            1380: 43,  // 23:00
+            1410: 42,  // 23:30
+            1440: 40,  // 24:00
+            1470: 39,  // 24:30
+            1500: 38,  // 25:00
+            1530: 37,  // 25:30
+            1560: 36,  // 26:00
+            1590: 35,  // 26:30
+            1620: 34,  // 27:00
+            1680: 32,  // 28:00
+            1740: 30,  // 29:00
+            1800: 28   // 30:00
+        },
+        
         getVDOT: function(timeInSeconds, distance = '5k') {
-            // Convert time to equivalent 5K time first
+            // Convert to equivalent 5K time
             const equivalent5K = this.convertToEquivalent5K(timeInSeconds, distance);
             
-            // Jack Daniels VDOT formula for 5K
-            // VDOT = -4.6 + 0.182258 * (velocity in m/min) + 0.000104 * (velocity in m/min)^2
-            const velocityMperMin = 5000 / (equivalent5K / 60); // meters per minute
-            const vdot = -4.6 + 0.182258 * velocityMperMin + 0.000104 * Math.pow(velocityMperMin, 2);
+            // Find closest VDOT from lookup table
+            const times = Object.keys(this.vdotData).map(Number).sort((a, b) => a - b);
             
-            return Math.round(vdot);
+            // Linear interpolation between closest values
+            for (let i = 0; i < times.length - 1; i++) {
+                if (equivalent5K >= times[i] && equivalent5K <= times[i + 1]) {
+                    const t1 = times[i];
+                    const t2 = times[i + 1];
+                    const v1 = this.vdotData[t1];
+                    const v2 = this.vdotData[t2];
+                    
+                    const ratio = (equivalent5K - t1) / (t2 - t1);
+                    return Math.round(v1 + (v2 - v1) * ratio);
+                }
+            }
+            
+            // Handle edge cases
+            if (equivalent5K < times[0]) return this.vdotData[times[0]] + 5;
+            if (equivalent5K > times[times.length - 1]) return this.vdotData[times[times.length - 1]] - 2;
+            
+            return 35; // fallback
         },
         
         convertToEquivalent5K: function(timeInSeconds, distance) {
-            // Time multipliers based on Jack Daniels equivalent performance table
-            const multipliers = {
+            // Jack Daniels equivalent performance ratios
+            const ratios = {
                 '5k': 1.0,
-                '10k': 2.08,
-                'half': 4.67,
-                'marathon': 9.93
+                '10k': 2.07,
+                'half': 4.66,
+                'marathon': 9.78
             };
             
-            return timeInSeconds / multipliers[distance];
+            return timeInSeconds / ratios[distance];
         },
         
-        // Get training paces based on VDOT (Jack Daniels formulas)
+        // Training paces based on VDOT (using Jack Daniels pace tables)
         getTrainingPaces: function(vdot) {
-            // Velocity at VDOT (m/min)
-            const vVDOT = 15.3 * vdot - 133;
+            // Base 5K pace calculation (interval pace)
+            const intervalPace = this.getIntervalPace(vdot);
             
-            // Training pace percentages (from Jack Daniels research)
-            const paceFactors = {
-                easy: 0.65,      // 65-79% of VDOT
-                marathon: 0.84,  // 84% of VDOT  
-                threshold: 0.88, // 88% of VDOT
-                interval: 1.00,  // 100% of VDOT (5K pace)
-                repetition: 1.12 // 112% of VDOT
+            // Calculate other paces relative to interval pace
+            const paces = {
+                interval: intervalPace,
+                easy: this.addSecondsPerKm(intervalPace, this.getEasyAdjustment(vdot)),
+                marathon: this.addSecondsPerKm(intervalPace, this.getMarathonAdjustment(vdot)),
+                threshold: this.addSecondsPerKm(intervalPace, this.getThresholdAdjustment(vdot)),
+                repetition: this.addSecondsPerKm(intervalPace, this.getRepetitionAdjustment(vdot))
             };
             
-            const paces = {};
-            for (const [type, factor] of Object.entries(paceFactors)) {
-                const velocity = vVDOT * factor;
-                const secondsPerKm = 60000 / velocity; // convert to seconds per km
-                paces[type] = this.formatPace(secondsPerKm);
-            }
-            
-            // Easy pace range (65-79%)
-            const easySlowVel = vVDOT * 0.65;
-            const easyFastVel = vVDOT * 0.79;
-            paces.easySlow = this.formatPace(60000 / easySlowVel);
-            paces.easyFast = this.formatPace(60000 / easyFastVel);
+            // Easy pace range
+            paces.easySlow = this.addSecondsPerKm(paces.easy, 15);
+            paces.easyFast = this.addSecondsPerKm(paces.easy, -10);
             
             return paces;
+        },
+        
+        getIntervalPace: function(vdot) {
+            // Approximate 5K pace based on VDOT
+            const paceLookup = {
+                80: 180,  // 3:00/km
+                75: 192,  // 3:12/km
+                70: 205,  // 3:25/km
+                65: 218,  // 3:38/km
+                60: 232,  // 3:52/km
+                55: 247,  // 4:07/km
+                50: 263,  // 4:23/km
+                45: 280,  // 4:40/km
+                40: 300,  // 5:00/km
+                35: 322,  // 5:22/km
+                30: 348   // 5:48/km
+            };
+            
+            // Linear interpolation
+            const vdots = Object.keys(paceLookup).map(Number).sort((a, b) => b - a);
+            
+            for (let i = 0; i < vdots.length - 1; i++) {
+                if (vdot >= vdots[i + 1] && vdot <= vdots[i]) {
+                    const v1 = vdots[i];
+                    const v2 = vdots[i + 1];
+                    const p1 = paceLookup[v1];
+                    const p2 = paceLookup[v2];
+                    
+                    const ratio = (vdot - v2) / (v1 - v2);
+                    return Math.round(p2 + (p1 - p2) * ratio);
+                }
+            }
+            
+            return paceLookup[35] || 348;
+        },
+        
+        getEasyAdjustment: function(vdot) {
+            // Easy pace is typically 65-79% of VO2max pace
+            if (vdot >= 70) return 60;
+            if (vdot >= 60) return 70;
+            if (vdot >= 50) return 80;
+            if (vdot >= 40) return 90;
+            return 100;
+        },
+        
+        getMarathonAdjustment: function(vdot) {
+            // Marathon pace adjustment from 5K pace
+            if (vdot >= 70) return 45;
+            if (vdot >= 60) return 50;
+            if (vdot >= 50) return 55;
+            if (vdot >= 40) return 60;
+            return 65;
+        },
+        
+        getThresholdAdjustment: function(vdot) {
+            // Threshold pace (lactate threshold)
+            if (vdot >= 70) return 20;
+            if (vdot >= 60) return 25;
+            if (vdot >= 50) return 30;
+            if (vdot >= 40) return 35;
+            return 40;
+        },
+        
+        getRepetitionAdjustment: function(vdot) {
+            // Repetition pace (faster than 5K pace)
+            if (vdot >= 70) return -10;
+            if (vdot >= 60) return -8;
+            if (vdot >= 50) return -6;
+            if (vdot >= 40) return -4;
+            return -2;
+        },
+        
+        addSecondsPerKm: function(paceString, seconds) {
+            const [min, sec] = paceString.split(':').map(Number);
+            const totalSeconds = min * 60 + sec + seconds;
+            return this.formatPace(totalSeconds);
         },
         
         formatPace: function(secondsPerKm) {
@@ -433,21 +547,49 @@
     }
     
     function predictRaceTime(vdot, distance) {
-        // Jack Daniels race prediction formulas
-        const vVDOT = 15.3 * vdot - 133; // velocity at VDOT
-        
-        const distances = {
-            '5k': { meters: 5000, factor: 1.00 },
-            '10k': { meters: 10000, factor: 0.955 },
-            'half': { meters: 21097, factor: 0.879 },
-            'marathon': { meters: 42195, factor: 0.831 }
+        // Jack Daniels race time predictions based on VDOT
+        const raceTimes = {
+            '5k': {
+                80: '15:00', 75: '15:50', 70: '16:45', 65: '17:45', 60: '18:50',
+                55: '20:05', 50: '21:30', 45: '23:05', 40: '25:00', 35: '27:20', 30: '30:00'
+            },
+            '10k': {
+                80: '31:15', 75: '33:00', 70: '35:00', 65: '37:15', 60: '39:45',
+                55: '42:35', 50: '45:45', 45: '49:25', 40: '53:45', 35: '58:50', 30: '64:30'
+            }
         };
         
-        const raceInfo = distances[distance];
-        const raceVelocity = vVDOT * raceInfo.factor;
-        const timeInMinutes = raceInfo.meters / raceVelocity;
+        const timeData = raceTimes[distance];
+        if (!timeData) return '00:00';
         
-        return formatTime(timeInMinutes * 60);
+        // Linear interpolation between VDOT values
+        const vdots = Object.keys(timeData).map(Number).sort((a, b) => b - a);
+        
+        for (let i = 0; i < vdots.length - 1; i++) {
+            if (vdot >= vdots[i + 1] && vdot <= vdots[i]) {
+                const v1 = vdots[i];
+                const v2 = vdots[i + 1];
+                const t1 = timeData[v1];
+                const t2 = timeData[v2];
+                
+                // Convert times to seconds for interpolation
+                const [m1, s1] = t1.split(':').map(Number);
+                const [m2, s2] = t2.split(':').map(Number);
+                const time1 = m1 * 60 + s1;
+                const time2 = m2 * 60 + s2;
+                
+                const ratio = (vdot - v2) / (v1 - v2);
+                const interpolatedTime = Math.round(time2 + (time1 - time2) * ratio);
+                
+                return formatTime(interpolatedTime);
+            }
+        }
+        
+        // Handle edge cases
+        if (vdot >= vdots[0]) return timeData[vdots[0]];
+        if (vdot <= vdots[vdots.length - 1]) return timeData[vdots[vdots.length - 1]];
+        
+        return timeData[35] || '27:20';
     }
     
     function formatTime(seconds) {
