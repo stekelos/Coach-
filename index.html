@@ -1,120 +1,497 @@
 <!DOCTYPE html>
+
 <html lang="el">
 <head>
     <meta charset="UTF-8">
-    <title>Προπονητής Επιδόσεων</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef3f7; margin: 0; padding: 0; }
-        header { background: linear-gradient(90deg, #264653 0%, #2a9d8f 100%); color: #fff; padding: 32px 0 18px 0; text-align: center; box-shadow: 0 2px 10px rgba(38,70,83,0.11);}
-        main { max-width: 660px; margin: 40px auto; background: #fff; padding: 42px 30px; border-radius: 16px; box-shadow: 0 8px 48px rgba(38,70,83,0.10); }
-        h1 { margin: 0 0 12px 0; font-size: 2.25em; letter-spacing: 1px;}
-        h2 { color: #264653; margin-bottom: 16px;}
-        label { display: block; margin-bottom: 14px; font-size: 1.10em;}
-        input[type="text"], select { padding: 9px; font-size: 1em; margin-bottom: 22px; width: 98%; box-sizing: border-box; border: 1px solid #b2bec3; border-radius: 7px;}
-        button { background: linear-gradient(90deg,#2a9d8f 0%,#264653 100%); color: #fff; border: none; border-radius: 7px; padding: 12px 0; font-size: 1.08em; font-weight: bold; width: 100%; cursor: pointer; box-shadow: 0 2px 8px rgba(42,157,143,0.10);}
-        button:hover { background: #21867a; }
-        .result { margin-top: 32px; background: #e0f7fa; padding: 24px; border-radius: 12px; box-shadow: 0 2px 14px rgba(42,157,143,0.11);}
-        .tips { margin-top: 28px; background: #fff6e9; padding: 18px; border-radius: 10px; border-left: 5px solid #f4a261;}
-        .plan-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
-        .plan-table th, .plan-table td { padding: 8px 6px; border: 1px solid #b2bec3; font-size: 1em; text-align: center; }
-        .plan-table th { background: #2a9d8f; color: #fff;}
-        .level-label { display: inline-block; padding: 6px 18px; border-radius: 20px; font-weight: bold; font-size: 1.08em; background: #264653; color: #fff; box-shadow: 0 1px 8px rgba(38,70,83,0.12);}
-        .desc { margin-top: 18px; font-size: 1.11em; }
-        .highlight { color: #e76f51; font-weight: bold;}
-        footer { text-align: center; color: #888; font-size: 1em; margin-top: 60px; padding-bottom: 22px;}
-        @media (max-width: 700px) {
-            main { padding: 16px; }
-            .result { padding: 14px;}
+    <title>Jack Daniels 5K Training</title>
+
+```
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#1a1a1a">
+<meta name="description" content="5K προπόνηση με τις αρχές του Jack Daniels">
+<link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkphY2sgRGFuaWVscyA1SyBUcmFpbmluZyIsCiAgInNob3J0X25hbWUiOiAiNUsgVHJhaW5pbmciLAogICJkZXNjcmlwdGlvbiI6ICI1SyDPgM+Bzr/PgM6/zr3Ot8+DzrEgzrzOtSDPhM65z4IgzrHPgc+Hzq3PgiDPhM6/z4UgSmFjayBEYW5pZWxzIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJ0aGVtZV9jb2xvciI6ICIjMWExYTFhIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMDAwMDAwIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCM2FXUjBhRDBpTWpRaUlHaGxhV2RvZEQwaU1qUWlJSFpwWlhkQ2IzZzlJakFnTUNBeU5DQXlOQ0lnWm1sc2JEMGlJekZoTVdFeFlTSStQSEJoZEdnZ1pEMGlUVEV5SURJdU5XdzFMalVnTlM0MVFERTNMalVnTFRWeUxUVXVOU0ExTGpWTU1qRXVOU0F4TUVFeE9TNDFJRGd1TlNBeE1pQXlMalY2SWk4K1BDOXpkbWMrIiwKICAgICAgInNpemVzIjogIjI0eDI0IiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
+
+<!-- Styles -->
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        font-family: 'Georgia', serif;
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+        color: #f5f5f5;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+    
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+    }
+    
+    .header {
+        text-align: center;
+        margin-bottom: 40px;
+        position: relative;
+    }
+    
+    .jack-daniels-logo {
+        background: linear-gradient(45deg, #d4af37, #ffd700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 2.5rem;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        margin-bottom: 10px;
+        letter-spacing: 2px;
+    }
+    
+    .subtitle {
+        color: #b8860b;
+        font-size: 1.2rem;
+        font-style: italic;
+        margin-bottom: 5px;
+    }
+    
+    .tagline {
+        color: #888;
+        font-size: 0.9rem;
+    }
+    
+    .form-section {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .section-title {
+        color: #d4af37;
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .input-group {
+        margin-bottom: 20px;
+    }
+    
+    label {
+        display: block;
+        margin-bottom: 8px;
+        color: #d4af37;
+        font-weight: bold;
+    }
+    
+    input, select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid rgba(212, 175, 55, 0.3);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        color: #f5f5f5;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+    
+    input:focus, select:focus {
+        outline: none;
+        border-color: #d4af37;
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    }
+    
+    .time-input {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .time-input input {
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .time-separator {
+        color: #d4af37;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .calculate-btn {
+        background: linear-gradient(45deg, #d4af37, #ffd700);
+        color: #000;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: block;
+        margin: 20px auto;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .calculate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+    }
+    
+    .results {
+        display: none;
+        background: rgba(212, 175, 55, 0.1);
+        border-radius: 15px;
+        padding: 30px;
+        margin-top: 30px;
+        border: 2px solid #d4af37;
+    }
+    
+    .pace-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .pace-card {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(212, 175, 55, 0.3);
+    }
+    
+    .pace-type {
+        color: #d4af37;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    .pace-value {
+        color: #f5f5f5;
+        font-size: 2rem;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .pace-description {
+        color: #aaa;
+        font-size: 0.9rem;
+        margin-top: 10px;
+        font-style: italic;
+    }
+    
+    .training-plan {
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 2px solid rgba(212, 175, 55, 0.3);
+    }
+    
+    .week-plan {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .week-title {
+        color: #d4af37;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+    
+    .workout-list {
+        list-style: none;
+    }
+    
+    .workout-item {
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .workout-item:last-child {
+        border-bottom: none;
+    }
+    
+    .workout-day {
+        color: #d4af37;
+        font-weight: bold;
+    }
+    
+    .workout-details {
+        color: #f5f5f5;
+        margin-top: 5px;
+    }
+    
+    .vdot-display {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+    }
+    
+    .vdot-value {
+        color: #d4af37;
+        font-weight: bold;
+        font-size: 2rem;
+    }
+    
+    @media (max-width: 600px) {
+        .container {
+            padding: 10px;
         }
-    </style>
+        
+        .jack-daniels-logo {
+            font-size: 2rem;
+        }
+        
+        .pace-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .time-input {
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
+    
+    .whiskey-accent {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 60px;
+        height: 60px;
+        background: radial-gradient(circle, #d4af37, #b8860b);
+        border-radius: 50%;
+        opacity: 0.1;
+        z-index: -1;
+    }
+</style>
+```
+
 </head>
 <body>
-    <header>
-        <h1>Προπονητής Επιδόσεων</h1>
-        <p>Σχεδίασε επαγγελματικό πρόγραμμα προπόνησης με βάση την επίδοσή σου – <span class="highlight">ανέβασε επίπεδο!</span></p>
-    </header>
-    <main>
-        <h2>Εισαγωγή Επίδοσης</h2>
-        <form id="performanceForm">
-            <label for="event">Διάλεξε αγώνισμα:</label>
-            <select id="event" name="event" required>
-                <option value="5k">5 χλμ</option>
-                <option value="10k">10 χλμ</option>
-                <option value="hm">Ημιμαραθώνιος (21.1χλμ)</option>
-                <option value="marathon">Μαραθώνιος (42.2χλμ)</option>
-            </select>
-            <label for="performance">Χρόνος τερματισμού (ωω:λλ:δδ):</label>
-            <input type="text" id="performance" name="performance" pattern="^([0-9]{1,2}):([0-9]{2}):([0-9]{2})$" placeholder="π.χ. 00:45:30" required>
-            <button type="submit">Δημιουργία Προγράμματος</button>
-        </form>
-        <div id="trainingAdvice" class="result" style="display:none;"></div>
-        <div class="tips">
-            <strong>Top Tips Προπόνησης:</strong>
-            <ul>
-                <li><span class="highlight">Προθέρμανση:</span> 12-15 λεπτά jogging + δυναμικές διατάσεις.</li>
-                <li><span class="highlight">Συνδυασμός:</span> Εύκολες διαδρομές, tempo, intervals, long run κάθε εβδομάδα.</li>
-                <li><span class="highlight">Ανάκτηση:</span> 1-2 ημέρες ελαφριάς ή πλήρους ξεκούρασης εβδομαδιαία.</li>
-                <li><span class="highlight">Πρόοδος:</span> Αύξηση χιλιομέτρων έως 8% ανά εβδομάδα.</li>
-                <li><span class="highlight">Διατροφή & Ενυδάτωση:</span> Ποιοτική πρόσληψη υδατανθράκων και ηλεκτρολυτών.</li>
-                <li><span class="highlight">Τεστ επίδοσης:</span> Κάνε συχνά δοκιμαστικά αγωνίσματα για αξιολόγηση.</li>
-            </ul>
+    <div class="container">
+        <div class="header">
+            <div class="whiskey-accent"></div>
+            <h1 class="jack-daniels-logo">JACK DANIELS</h1>
+            <div class="subtitle">5K Training Calculator</div>
+            <div class="tagline">"Every Runner's Guide to Success"</div>
         </div>
-    </main>
-    <footer>
-        &copy; 2025 Προπονητής Επιδόσεων. Powered by stekelos.
-    </footer>
-    <script>
-        function paceFromTime(time, distance) {
-            let pace = time / distance;
-            let mins = Math.floor(pace);
-            let secs = Math.round((pace - mins) * 60);
-            if (secs < 10) secs = '0' + secs;
-            return `${mins}:${secs}/km`;
+
+```
+    <div class="form-section">
+        <h2 class="section-title">Εισάγετε την Επίδοση σας</h2>
+        
+        <div class="input-group">
+            <label for="performance-type">Τύπος Επίδοσης:</label>
+            <select id="performance-type">
+                <option value="5k">5K Χρόνος</option>
+                <option value="10k">10K Χρόνος</option>
+                <option value="half">Ημιμαραθώνιος</option>
+                <option value="marathon">Μαραθώνιος</option>
+            </select>
+        </div>
+        
+        <div class="input-group">
+            <label>Χρόνος Επίδοσης:</label>
+            <div class="time-input">
+                <input type="number" id="minutes" placeholder="λεπτά" min="0" max="120">
+                <span class="time-separator">:</span>
+                <input type="number" id="seconds" placeholder="δευτερόλεπτα" min="0" max="59">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="training-weeks">Εβδομάδες Προπόνησης:</label>
+            <select id="training-weeks">
+                <option value="8">8 εβδομάδες</option>
+                <option value="12" selected>12 εβδομάδες</option>
+                <option value="16">16 εβδομάδες</option>
+            </select>
+        </div>
+        
+        <button class="calculate-btn" onclick="calculatePaces()">Υπολογισμός Ρυθμών</button>
+    </div>
+    
+    <div class="results" id="results">
+        <div class="vdot-display">
+            VDOT Score: <span class="vdot-value" id="vdot-score">--</span>
+        </div>
+        
+        <div class="pace-grid" id="pace-grid">
+            <!-- Pace cards will be generated here -->
+        </div>
+        
+        <div class="training-plan">
+            <h3 class="section-title">Πρόγραμμα Προπόνησης</h3>
+            <div id="training-schedule">
+                <!-- Training schedule will be generated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Jack Daniels VDOT calculations and pace data
+    const vdotTable = {
+        // Simplified VDOT table for 5K times (minutes:seconds -> VDOT)
+        getVDOT: function(timeInSeconds, distance = '5k') {
+            const multipliers = {
+                '5k': 1.0,
+                '10k': 2.08,
+                'half': 4.66,
+                'marathon': 9.78
+            };
+            
+            const adjusted5kTime = timeInSeconds / multipliers[distance];
+            
+            // Simplified VDOT calculation based on 5K time
+            if (adjusted5kTime < 900) return 80; // sub 15:00
+            if (adjusted5kTime < 1020) return 70; // sub 17:00
+            if (adjusted5kTime < 1140) return 60; // sub 19:00
+            if (adjusted5kTime < 1260) return 55; // sub 21:00
+            if (adjusted5kTime < 1380) return 50; // sub 23:00
+            if (adjusted5kTime < 1500) return 45; // sub 25:00
+            if (adjusted5kTime < 1620) return 40; // sub 27:00
+            if (adjusted5kTime < 1800) return 35; // sub 30:00
+            return 30;
         }
-
-        function getAdvice(event, perf) {
-            let dist = { "5k": 5, "10k": 10, "hm": 21.1, "marathon": 42.2 }[event];
-            let p = paceFromTime(perf, dist);
-            let level = '';
-            let plan = '';
-            let desc = '';
-
-            // ... [Ολόκληρη η λογική για τα προγράμματα όπως στην προηγούμενη απάντηση] ...
-            // Δες το προηγούμενο αρχείο για όλο το περιεχόμενο!
-
-            return `
-                <span class="level-label">Επίπεδο: ${level}</span>
-                <br><br>
-                <b>Ρυθμός αγώνα:</b> ${p}<br>
-                <div class="desc">${desc}</div>
-                ${plan}
+    };
+    
+    function calculatePaces() {
+        const minutes = parseInt(document.getElementById('minutes').value) || 0;
+        const seconds = parseInt(document.getElementById('seconds').value) || 0;
+        const performanceType = document.getElementById('performance-type').value;
+        const trainingWeeks = parseInt(document.getElementById('training-weeks').value);
+        
+        if (minutes === 0 && seconds === 0) {
+            alert('Παρακαλώ εισάγετε έναν έγκυρο χρόνο');
+            return;
+        }
+        
+        const totalSeconds = minutes * 60 + seconds;
+        const vdot = vdotTable.getVDOT(totalSeconds, performanceType);
+        
+        // Calculate training paces based on VDOT
+        const paces = calculateTrainingPaces(vdot);
+        
+        // Display results
+        displayResults(vdot, paces, trainingWeeks);
+    }
+    
+    function calculateTrainingPaces(vdot) {
+        // Jack Daniels pace calculations (simplified)
+        const basePace = 180 + (80 - vdot) * 6; // Easy pace in seconds per km
+        
+        return {
+            easy: formatPace(basePace),
+            marathon: formatPace(basePace - 15),
+            threshold: formatPace(basePace - 30),
+            interval: formatPace(basePace - 45),
+            repetition: formatPace(basePace - 60)
+        };
+    }
+    
+    function formatPace(secondsPerKm) {
+        const minutes = Math.floor(secondsPerKm / 60);
+        const seconds = Math.round(secondsPerKm % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    function displayResults(vdot, paces, weeks) {
+        document.getElementById('vdot-score').textContent = vdot;
+        
+        const paceData = [
+            { type: 'EASY (E)', pace: paces.easy, description: 'Αερόβιες προπονήσεις' },
+            { type: 'MARATHON (M)', pace: paces.marathon, description: 'Ρυθμός μαραθώνιου' },
+            { type: 'THRESHOLD (T)', pace: paces.threshold, description: 'Lactate threshold' },
+            { type: 'INTERVAL (I)', pace: paces.interval, description: '5K ρυθμός' },
+            { type: 'REPETITION (R)', pace: paces.repetition, description: 'Ταχύτητα & νευρομυϊκή' }
+        ];
+        
+        const paceGrid = document.getElementById('pace-grid');
+        paceGrid.innerHTML = paceData.map(p => `
+            <div class="pace-card">
+                <div class="pace-type">${p.type}</div>
+                <div class="pace-value">${p.pace}</div>
+                <div class="pace-description">${p.description}</div>
+            </div>
+        `).join('');
+        
+        generateTrainingPlan(weeks, paces);
+        
+        document.getElementById('results').style.display = 'block';
+    }
+    
+    function generateTrainingPlan(weeks, paces) {
+        const schedule = document.getElementById('training-schedule');
+        let planHTML = '';
+        
+        const baseWeekly = [
+            { day: 'Δευτέρα', workout: `6-8km Easy (${paces.easy})` },
+            { day: 'Τρίτη', workout: `4x1000m I-pace (${paces.interval}) με 400m ανάκαμψη` },
+            { day: 'Τετάρτη', workout: `5-6km Easy (${paces.easy})` },
+            { day: 'Πέμπτη', workout: `3x1600m T-pace (${paces.threshold}) με 60sec ανάπαυση` },
+            { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
+            { day: 'Σάββατο', workout: `6x200m R-pace (${paces.repetition}) με 200m ανάκαμψη` },
+            { day: 'Κυριακή', workout: `10-12km Easy (${paces.easy})` }
+        ];
+        
+        for (let week = 1; week <= weeks; week++) {
+            const isEasyWeek = week % 4 === 0;
+            const weekTitle = isEasyWeek ? `Εβδομάδα ${week} (Ξεκούραση)` : `Εβδομάδα ${week}`;
+            
+            planHTML += `
+                <div class="week-plan">
+                    <div class="week-title">${weekTitle}</div>
+                    <ul class="workout-list">
             `;
+            
+            baseWeekly.forEach(day => {
+                let workout = day.workout;
+                if (isEasyWeek) {
+                    workout = workout.replace(/\d+-\d+km/g, match => {
+                        const [min, max] = match.match(/\d+/g);
+                        return `${Math.max(1, min - 2)}-${Math.max(2, max - 3)}km`;
+                    });
+                }
+                
+                planHTML += `
+                    <li class="workout-item">
+                        <div class="workout-day">${day.day}</div>
+                        <div class="workout-details">${workout}</div>
+                    </li>
+                `;
+            });
+            
+            planHTML += '</ul></div>';
         }
+        
+        schedule.innerHTML = planHTML;
+    }
+    
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('data:application/javascript;base64,c2VsZi5hZGRFdmVudExpc3RlbmVyKCdpbnN0YWxsJywgZXZlbnQgPT4gewogIGNvbnNvbGUubG9nKCdTVyBpbnN0YWxsZWQnKTsKfSk7CgpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2ZldGNoJywgZXZlbnQgPT4gewogIGV2ZW50LnJlc3BvbmRXaXRoKGZldGNoKGV2ZW50LnJlcXVlc3QpKTsKfSk7')
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.log('SW registration failed'));
+    }
+</script>
+```
 
-        function parseTimeToMinutes(timeStr) {
-            const match = /^([0-9]{1,2}):([0-9]{2}):([0-9]{2})$/.exec(timeStr);
-            if (!match) return NaN;
-            const hours = parseInt(match[1], 10);
-            const minutes = parseInt(match[2], 10);
-            const seconds = parseInt(match[3], 10);
-            return hours * 60 + minutes + seconds / 60;
-        }
-
-        document.getElementById('performanceForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const event = document.getElementById('event').value;
-            const perfStr = document.getElementById('performance').value.trim();
-            const perf = parseTimeToMinutes(perfStr);
-            if (isNaN(perf) || perf <= 0) {
-                document.getElementById('trainingAdvice').innerHTML = '<span style="color:red;">Παρακαλώ εισάγετε έγκυρη επίδοση στη μορφή ωω:λλ:δδ.</span>';
-                document.getElementById('trainingAdvice').style.display = 'block';
-                return;
-            }
-            const advice = getAdvice(event, perf);
-            document.getElementById('trainingAdvice').innerHTML = advice;
-            document.getElementById('trainingAdvice').style.display = 'block';
-        });
-    </script>
 </body>
 </html>
