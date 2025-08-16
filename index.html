@@ -30,6 +30,8 @@
 
   <label>Χρόνος (λεπτά):</label>
   <input type="number" id="minutes" placeholder="π.χ. 21"><br>
+  <label>Χρόνος (δευτερόλεπτα):</label>
+  <input type="number" id="seconds" placeholder="π.χ. 0"><br>
 
   <button onclick="generatePlan()">Δημιουργία Προγράμματος</button>
 
@@ -39,56 +41,78 @@
   <div class="faq" id="faq"></div>
 
   <script>
-    // Υπολογισμός VDOT (απλοποιημένη εξίσωση Daniels)
-    function calcVDOT(distanceKm, timeMin) {
-      let timeHr = timeMin / 60;
+    // Υπολογισμός VDOT (πιο ακριβής εξίσωση Daniels)
+    function calcVDOT(distanceKm, timeMin, timeSec) {
+      let totalSeconds = (parseFloat(timeMin) || 0) * 60 + (parseFloat(timeSec) || 0);
+      if (totalSeconds <= 0) return null;
+      let timeHr = totalSeconds / 3600;
       let velocity = distanceKm / timeHr;
-      let vo2 = -4.6 + 0.182258 * velocity + 0.000104 * velocity * velocity;
-      let vdot = vo2 / (0.8 + 0.1894393 * Math.exp(-0.012778 * timeMin) + 0.2989558 * Math.exp(-0.1932605 * timeMin));
+      let vo2 = -4.60 + 0.182258 * velocity + 0.000104 * velocity * velocity;
+      let frac = 0.8 + 0.1894393 * Math.exp(-0.012778 * (totalSeconds/60)) + 0.2989558 * Math.exp(-0.1932605 * (totalSeconds/60));
+      let vdot = vo2 / frac;
       return vdot.toFixed(1);
     }
 
-    // Pace ανά VDOT (απλοποιημένο)
     function getPaces(vdot) {
       vdot = parseFloat(vdot);
+      if (!vdot || vdot < 20) return null;
       return {
-        easy: (5.5 - (vdot - 30) * 0.05).toFixed(2),
-        tempo: (4.5 - (vdot - 30) * 0.04).toFixed(2),
-        interval: (4.0 - (vdot - 30) * 0.03).toFixed(2),
-        rep: (3.6 - (vdot - 30) * 0.025).toFixed(2)
+        easy: (12.92 - 0.276 * vdot),
+        marathon: (8.38 - 0.126 * vdot),
+        tempo: (6.51 - 0.072 * vdot),
+        interval: (5.62 - 0.054 * vdot),
+        rep: (4.83 - 0.043 * vdot)
       };
+    }
+
+    function formatPace(minPerKm) {
+      let mins = Math.floor(minPerKm);
+      let secs = Math.round((minPerKm - mins) * 60);
+      if (secs === 60) { mins++; secs = 0; }
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
     function generatePlan() {
       let dist = parseFloat(document.getElementById("distance").value);
-      let time = parseFloat(document.getElementById("minutes").value);
+      let min = parseFloat(document.getElementById("minutes").value);
+      let sec = parseFloat(document.getElementById("seconds").value) || 0;
 
-      if (!time || time <= 0) {
+      if (!min || min < 0 || sec < 0 || dist <= 0) {
+        document.getElementById("output").innerHTML = "<p>❌ Βάλε σωστά στοιχεία.</p>";
+        return;
+      }
+
+      let vdot = calcVDOT(dist, min, sec);
+      if (!vdot) {
         document.getElementById("output").innerHTML = "<p>❌ Βάλε σωστό χρόνο.</p>";
         return;
       }
 
-      let vdot = calcVDOT(dist, time);
       let paces = getPaces(vdot);
+      if (!paces) {
+        document.getElementById("output").innerHTML = "<p>❌ Το VDOT είναι πολύ χαμηλό.</p>";
+        return;
+      }
 
       let plan = `
         <h3>Το VDOT σου είναι: ${vdot}</h3>
-        <p><b>Ρυθμοί προπόνησης:</b></p>
+        <p><b>Ρυθμοί προπόνησης (ανά χλμ):</b></p>
         <ul>
-          <li>Easy: ~${paces.easy} λεπτά/χλμ</li>
-          <li>Tempo: ~${paces.tempo} λεπτά/χλμ</li>
-          <li>Interval: ~${paces.interval} λεπτά/χλμ</li>
-          <li>Repetition: ~${paces.rep} λεπτά/χλμ</li>
+          <li>Easy: ~${formatPace(paces.easy)} /χλμ</li>
+          <li>Tempo: ~${formatPace(paces.tempo)} /χλμ</li>
+          <li>Interval: ~${formatPace(paces.interval)} /χλμ</li>
+          <li>Repetition: ~${formatPace(paces.rep)} /χλμ</li>
+          <li>Μαραθωνίου: ~${formatPace(paces.marathon)} /χλμ</li>
         </ul>
         <h3>Εβδομαδιαίο πρόγραμμα:</h3>
         <ul>
           <li>Δευτέρα: Ξεκούραση</li>
-          <li>Τρίτη: Διαλειμματική (6x800m στο ${paces.interval})</li>
-          <li>Τετάρτη: Easy Run (6-8χλμ στο ${paces.easy})</li>
-          <li>Πέμπτη: Tempo Run (20’ στο ${paces.tempo})</li>
+          <li>Τρίτη: Διαλειμματική (6x800m στο ${formatPace(paces.interval)} /χλμ)</li>
+          <li>Τετάρτη: Easy Run (6-8χλμ στο ${formatPace(paces.easy)} /χλμ)</li>
+          <li>Πέμπτη: Tempo Run (20’ στο ${formatPace(paces.tempo)} /χλμ)</li>
           <li>Παρασκευή: Ξεκούραση</li>
-          <li>Σάββατο: Long Run (12-18χλμ στο ${paces.easy})</li>
-          <li>Κυριακή: Recovery (5χλμ στο ${paces.easy})</li>
+          <li>Σάββατο: Long Run (12-18χλμ στο ${formatPace(paces.easy)} /χλμ)</li>
+          <li>Κυριακή: Recovery (5χλμ στο ${formatPace(paces.easy)} /χλμ)</li>
         </ul>
       `;
       document.getElementById("output").innerHTML = plan;
@@ -105,7 +129,17 @@
       ["Τι πίνω σε long run >90’;", "👉 Ισοτονικό + gels κάθε 40-45’."],
       ["Διατάσεις πριν/μετά;", "👉 Πριν δυναμικές, μετά στατικές."],
       ["Πόσες μέρες τρέξιμο/εβδομάδα;", "👉 Αρχάριοι 3-4, έμπειροι 5-6."],
-      ["Αν δεν έχω χρόνο;", "👉 Έστω 20’ easy ή 10x1’ intervals καλύτερο από τίποτα."]
+      ["Αν δεν έχω χρόνο;", "👉 Έστω 20’ easy ή 10x1’ intervals καλύτερο από τίποτα."],
+      ["Πώς να βελτιώσω την ταχύτητά μου;", "👉 Ενσωμάτωσε διαλειμματικές και tempo runs 1-2 φορές την εβδομάδα."],
+      ["Τι να κάνω αν δεν έχω κίνητρο;", "👉 Βρες ομάδα ή φίλο για τρέξιμο, θέσε μικρούς στόχους, κάνε το τρέξιμο παιχνίδι."],
+      ["Πόσο νερό να πίνω πριν ή κατά τη διάρκεια του τρεξίματος;", "👉 300-500ml 1 ώρα πριν, μικρές γουλιές κάθε 20-30’ στη διαδρομή."],
+      ["Επιτρέπεται τρέξιμο με ψύχρα ή κρύο;", "👉 Ναι, ντύσου σε στρώσεις, προσοχή σε παγωνιά-πάγο."],
+      ["Πώς να προετοιμαστώ για τον πρώτο μου αγώνα;", "👉 Προπόνηση με πρόγραμμα, δοκίμασε τον εξοπλισμό, ξεκούραση τις τελευταίες μέρες."],
+      ["Πώς να αποφύγω τραυματισμούς;", "👉 Αύξησε σταδιακά τα χιλιόμετρα, κάνε διατάσεις, προσοχή σε πόνο που επιμένει."],
+      ["Τι ρόλο παίζει η διατροφή στον δρομέα;", "👉 Η ισορροπημένη διατροφή βοηθά στην απόδοση, ανάκτηση και αποφυγή τραυματισμών."],
+      ["Πώς να κάνω σωστή προθέρμανση;", "👉 Ξεκίνα με περπάτημα/αργό τρέξιμο 5-10’, κάνε δυναμικές διατάσεις."],
+      ["Πόσο συχνά να κάνω long run;", "👉 1 φορά την εβδομάδα, με αύξηση 1-2χλμ ανά εβδομάδα."],
+      ["Τι να κάνω αν ο καιρός είναι πολύ ζεστός;", "👉 Τρέξε νωρίς ή αργά, φόρα ελαφριά ρούχα, πίνε πολλά υγρά, μείωσε ένταση."]
     ];
 
     const faqContainer = document.getElementById("faq");
