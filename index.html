@@ -1,147 +1,105 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <title>Jack Daniels VDOT Calculator</title>
-  <meta name="description" content="Υπολογισμός VDOT & ρυθμών προπόνησης βάσει Jack Daniels" />
-  <meta name="theme-color" content="#1a1a1a" />
-
-  <!-- PWA: Web App Manifest -->
-  <link rel="manifest" href="manifest.webmanifest" />
-
-  <!-- iOS PWA -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="VDOT Calc" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-
+  <meta charset="UTF-8">
+  <title>Jack Daniels Running Program</title>
   <style>
-    :root {
-      --bg1:#0a0a0a; --bg2:#1a1a1a; --gold:#d4af37; --text:#f5f5f5; --muted:#9aa0a6;
-    }
-    * { box-sizing: border-box; margin:0; padding:0; }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: linear-gradient(135deg, var(--bg1), var(--bg2));
-      color: var(--text); min-height: 100svh;
-      display:flex; align-items:flex-start; justify-content:center;
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
     }
-    .container { width:min(940px, 100%); padding:24px; }
-    .card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(212,175,55,0.25);
-      border-radius: 16px; padding: 24px; backdrop-filter: blur(8px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    h1, h2 {
+      text-align: center;
     }
-    .header { text-align:center; margin-bottom: 24px; }
-    .title {
-      font-size: clamp(28px, 4vw, 42px);
-      background: linear-gradient(45deg, #ffd700, var(--gold));
-      -webkit-background-clip: text; background-clip:text; -webkit-text-fill-color: transparent;
-      letter-spacing: 1px; font-weight: 800;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    label {
+      display: block;
+      margin: 10px 0 5px;
     }
-    .subtitle { color: var(--muted); margin-top: 6px; }
-    .grid { display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
-    @media (max-width:720px){ .grid { grid-template-columns: 1fr; } }
-    label { color: var(--gold); font-weight: 700; margin-bottom: 6px; display:block; }
     input, select, button {
-      width:100%; padding:12px 14px; border-radius:10px; border:2px solid rgba(212,175,55,0.25);
-      background: rgba(0,0,0,0.35); color:var(--text); font-size:16px; outline:none;
-      transition:.2s border-color, .2s box-shadow;
+      padding: 8px;
+      width: 100%;
+      margin-bottom: 15px;
+      font-size: 1em;
     }
-    input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,0.15); }
-    .btn {
-      background: linear-gradient(45deg, #ffd700, var(--gold));
-      color:#000; font-weight:800; text-transform:uppercase; letter-spacing:.5px;
-      border:none; cursor:pointer;
+    #result {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
     }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(212,175,55,0.35); }
-    .muted { color: var(--muted); font-size: 14px; }
-    .results { margin-top: 18px; display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
-    .pace { padding:16px; border:1px solid rgba(212,175,55,0.25); border-radius:12px; background:rgba(0,0,0,0.35); text-align:center; }
-    .pace h4 { color: var(--gold); margin-bottom:8px; }
-    .pace .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 28px; font-weight: 800; }
-    .row { display:flex; gap:12px; align-items:end; }
-    .footer { margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; align-items:center; }
-    .install { display:none; }
-    .ok { color:#00c853; font-weight:700; }
-    .err { color:#ff5252; font-weight:700; }
-    .divider { height:1px; background:rgba(255,255,255,0.08); margin: 16px 0; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #eee;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <header class="header">
-        <h1 class="title">JACK DANIELS VDOT</h1>
-        <p class="subtitle">Ακριβείς ρυθμοί προπόνησης βάσει των εξισώσεων Daniels</p>
-      </header>
+  <h1>Jack Daniels VDOT & Training Program</h1>
 
-      <div class="grid">
-        <div>
-          <label for="time">Χρόνος (mm:ss)</label>
-          <input id="time" type="text" inputmode="numeric" placeholder="π.χ. 21:00" autocomplete="off" />
-          <p class="muted">Δώσε επίδοση αγώνα (π.χ. 5Κ → 21:00)</p>
-        </div>
+  <label for="time">Χρόνος (π.χ. 21:00):</label>
+  <input type="text" id="time" placeholder="mm:ss">
 
-        <div>
-          <label for="distance">Απόσταση</label>
-          <select id="distance">
-            <option value="5k">5 km</option>
-            <option value="10k">10 km</option>
-            <option value="half">Ημιμαραθώνιος</option>
-            <option value="marathon">Μαραθώνιος</option>
-          </select>
-        </div>
-      </div>
+  <label for="distance">Απόσταση:</label>
+  <select id="distance">
+    <option value="5k">5 km</option>
+    <option value="10k">10 km</option>
+    <option value="half">Ημιμαραθώνιος</option>
+    <option value="marathon">Μαραθώνιος</option>
+  </select>
 
-      <div class="row" style="margin-top:12px;">
-        <button id="calc" class="btn">Υπολογισμός</button>
-        <button id="installBtn" class="btn install">Εγκατάσταση</button>
-      </div>
+  <label for="weeks">Διάρκεια Προγράμματος:</label>
+  <select id="weeks">
+    <option value="8">8 εβδομάδες</option>
+    <option value="12">12 εβδομάδες</option>
+    <option value="16">16 εβδομάδες</option>
+    <option value="20">20 εβδομάδες</option>
+    <option value="24">24 εβδομάδες</option>
+  </select>
 
-      <div id="out" style="margin-top:18px;">
-        <div class="muted">Συμβουλή: πάτα Enter στο πεδίο του χρόνου για άμεσο υπολογισμό.</div>
-      </div>
+  <button onclick="calculate()">Υπολογισμός</button>
 
-      <div class="divider"></div>
-
-      <section id="cards" class="results" aria-live="polite"></section>
-
-      <footer class="footer">
-        <div id="sw-status" class="muted">Service Worker: <span id="sw-state">—</span></div>
-        <div class="muted">Offline ready • Προσθήκη στην αρχική οθόνη</div>
-      </footer>
-    </div>
-  </div>
+  <div id="result"></div>
 
   <script>
-    // ---------------- Daniels Core ----------------
     const JackDanielsCalculator = {
       getVDOT: function(timeInSeconds, distance) {
-        const metersMap = { '5k': 5000, '10k': 10000, 'half': 21097.5, 'marathon': 42195 };
-        const meters = metersMap[distance];
-        const t = timeInSeconds / 60;         // min
+        const meters = {
+          '5k': 5000,
+          '10k': 10000,
+          'half': 21097.5,
+          'marathon': 42195
+        }[distance];
+
+        const t = timeInSeconds / 60; // λεπτά
         const v = (meters / timeInSeconds) * 60; // m/min
         const VO2 = -4.60 + 0.182258 * v + 0.000104 * v * v;
         const VO2race = VO2 * (0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t));
-        return Math.round(VO2race);
+        return Math.round(VO2race * 10) / 10; // δεκαδικό για ακρίβεια
       },
+
       getTrainingPaces: function(vdot) {
-        const paceFromVDOT = (percent) => {
+        function paceFromVDOT(percent) {
           const VO2 = vdot * percent;
           const a = 0.000104, b = 0.182258, c = -(VO2 + 4.6);
-          const discr = b*b - 4*a*c;
-          const v = (-b + Math.sqrt(discr)) / (2*a); // m/min
+          const v = (-b + Math.sqrt(b*b - 4*a*c)) / (2*a); // m/min
           const speed = v / 60; // m/s
-          const secPerKm = 1000 / speed;
-          return JackDanielsCalculator.formatPace(secPerKm);
-        };
+          const paceSecPerKm = 1000 / speed; 
+          return JackDanielsCalculator.formatPace(paceSecPerKm);
+        }
+
         return {
-          easyMean: paceFromVDOT(0.70),
           easySlow: paceFromVDOT(0.65),
           easyFast: paceFromVDOT(0.79),
           marathon: paceFromVDOT(0.84),
@@ -150,6 +108,7 @@
           repetition: paceFromVDOT(1.06)
         };
       },
+
       formatPace: function(secondsPerKm) {
         const minutes = Math.floor(secondsPerKm / 60);
         const seconds = Math.round(secondsPerKm % 60);
@@ -157,89 +116,66 @@
       }
     };
 
-    // ---------------- UI Logic ----------------
-    const $ = (sel) => document.querySelector(sel);
-    const timeInput = $('#time');
-    const distSelect = $('#distance');
-    const out = $('#out');
-    const cards = $('#cards');
-
     function parseTime(str) {
-      if (!str || !str.includes(':')) return null;
-      const [m, s] = str.split(':').map(v => parseInt(v, 10));
-      if (Number.isNaN(m) || Number.isNaN(s) || s > 59 || m < 0 || s < 0) return null;
-      return m * 60 + s;
+      const parts = str.split(":");
+      if (parts.length !== 2) return null;
+      const minutes = parseInt(parts[0], 10);
+      const seconds = parseInt(parts[1], 10);
+      return minutes * 60 + seconds;
     }
 
-    function render(vdot, p) {
-      out.innerHTML = `<div class="ok">VDOT: <b>${vdot}</b></div>`;
-      cards.innerHTML = [
-        { t:'EASY (E)', v:`${p.easySlow} – ${p.easyFast}`, sub:`Μέσος: ${p.easyMean}/km` },
-        { t:'MARATHON (M)', v:p.marathon, sub:'~84% VDOT' },
-        { t:'THRESHOLD (T)', v:p.threshold, sub:'~88% VDOT' },
-        { t:'INTERVAL (I)', v:p.interval, sub:'~100% VDOT' },
-        { t:'REPETITION (R)', v:p.repetition, sub:'~106% VDOT' },
-      ].map(x => `
-        <article class="pace" role="group" aria-label="${x.t}">
-          <h4>${x.t}</h4>
-          <div class="v">${x.v} /km</div>
-          <div class="muted">${x.sub}</div>
-        </article>
-      `).join('');
+    function generateProgram(weeks, paces) {
+      let schedule = [];
+      for (let w = 1; w <= weeks; w++) {
+        schedule.push([
+          `Εβδομάδα ${w}`,
+          `Δευτέρα: Easy ${paces.easySlow} – ${paces.easyFast}/km`,
+          `Τρίτη: Διαλειμματική ${paces.interval}/km (8x400m)`,
+          `Τετάρτη: Easy ${paces.easySlow} – ${paces.easyFast}/km`,
+          `Πέμπτη: Threshold ${paces.threshold}/km (20 λεπτά)`,
+          `Παρασκευή: Ρεπό`,
+          `Σάββατο: Long Run ${paces.marathon}/km`,
+          `Κυριακή: Easy ${paces.easySlow} – ${paces.easyFast}/km`
+        ]);
+      }
+      return schedule;
     }
 
     function calculate() {
-      const sec = parseTime(timeInput.value.trim());
-      const dist = distSelect.value;
-      if (!sec) {
-        out.innerHTML = `<div class="err">Δώσε έγκυρο χρόνο στη μορφή <b>mm:ss</b>.</div>`;
-        cards.innerHTML = '';
+      const timeStr = document.getElementById("time").value;
+      const distance = document.getElementById("distance").value;
+      const weeks = parseInt(document.getElementById("weeks").value, 10);
+      const timeInSeconds = parseTime(timeStr);
+
+      if (!timeInSeconds) {
+        alert("Δώσε χρόνο σε μορφή mm:ss");
         return;
       }
-      const vdot = JackDanielsCalculator.getVDOT(sec, dist);
+
+      const vdot = JackDanielsCalculator.getVDOT(timeInSeconds, distance);
       const paces = JackDanielsCalculator.getTrainingPaces(vdot);
-      render(vdot, paces);
-    }
 
-    $('#calc').addEventListener('click', calculate);
-    timeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') calculate(); });
+      let html = `<h2>VDOT: ${vdot}</h2>`;
+      html += `<p><b>Easy:</b> ${paces.easySlow} – ${paces.easyFast}/km<br>
+               <b>Marathon:</b> ${paces.marathon}/km<br>
+               <b>Threshold:</b> ${paces.threshold}/km<br>
+               <b>Interval:</b> ${paces.interval}/km<br>
+               <b>Repetition:</b> ${paces.repetition}/km</p>`;
 
-    // ---------------- PWA: Service Worker Registration ----------------
-    const swStateEl = $('#sw-state');
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
-        try {
-          const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
-          swStateEl.textContent = 'εγγράφηκε ✅';
-        } catch (e) {
-          swStateEl.textContent = 'αποτυχία ❌';
+      const program = generateProgram(weeks, paces);
+      html += `<h2>Πρόγραμμα ${weeks} Εβδομάδων</h2>`;
+      html += `<table><tr><th>Εβδομάδα</th><th>Ημέρα</th><th>Προπόνηση</th></tr>`;
+
+      program.forEach(week => {
+        for (let i = 1; i < week.length; i++) {
+          html += `<tr><td>${week[0]}</td><td>${week[i].split(":")[0]}</td><td>${week[i].split(":")[1]}</td></tr>`;
         }
       });
-    } else {
-      swStateEl.textContent = 'όχι υποστήριξη';
+
+      html += `</table>`;
+
+      document.getElementById("result").innerHTML = html;
     }
-
-    // ---------------- PWA: Install prompt button ----------------
-    let deferredPrompt = null;
-    const installBtn = document.getElementById('installBtn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.style.display = 'inline-block';
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      installBtn.style.display = 'none';
-    });
-
-    window.addEventListener('appinstalled', () => {
-      installBtn.style.display = 'none';
-    });
   </script>
 </body>
 </html>
