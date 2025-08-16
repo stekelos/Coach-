@@ -603,4 +603,223 @@
             const progression = Math.min(week / activeWeeks, 1);
             return 0.8 + (progression * 0.4); // 80% to 120% progression
         },
+        
+        getPhaseWorkouts: function(phase, week, paces, factor, isRecoveryWeek) {
+            const baseWorkouts = {
+                base: {
+                    easy1: Math.round(35 * factor),
+                    intervals: Math.round(3 * factor),
+                    easy2: Math.round(30 * factor),
+                    threshold: Math.round(15 * factor),
+                    repetitions: Math.round(4 * factor),
+                    longRun: Math.round(50 * factor),
+                    intervalDistance: '1000m',
+                    thresholdType: 'συνεχόμενο',
+                    repetitionDistance: '200m'
+                },
+                build: {
+                    easy1: Math.round(40 * factor),
+                    intervals: Math.round(4 * factor),
+                    easy2: Math.round(35 * factor),
+                    threshold: Math.round(20 * factor),
+                    repetitions: Math.round(6 * factor),
+                    longRun: Math.round(60 * factor),
+                    intervalDistance: '1000m',
+                    thresholdType: 'συνεχόμενο',
+                    repetitionDistance: '300m'
+                },
+                peak: {
+                    easy1: Math.round(45 * factor),
+                    intervals: Math.round(5 * factor),
+                    easy2: Math.round(35 * factor),
+                    threshold: Math.round(25 * factor),
+                    repetitions: Math.round(8 * factor),
+                    longRun: Math.round(55 * factor),
+                    intervalDistance: '800m',
+                    thresholdType: 'διαλειμματικό (2×12′ με 2′ ανάπαυση)',
+                    repetitionDistance: '400m'
+                }
+            };
+            
+            const w = baseWorkouts[phase];
+            
+            return [
+                { 
+                    day: 'Δευτέρα', 
+                    workout: `${w.easy1}′ Easy (${paces.easySlow}-${paces.easyFast})` 
+                },
+                { 
+                    day: 'Τρίτη', 
+                    workout: `${w.intervals}×${w.intervalDistance} @ ${paces.interval} (400m ανάκαμψη)` 
+                },
+                { 
+                    day: 'Τετάρτη', 
+                    workout: `${w.easy2}′ Easy (${paces.easySlow})` 
+                },
+                { 
+                    day: 'Πέμπτη', 
+                    workout: `${w.threshold}′ Threshold @ ${paces.threshold} ${w.thresholdType}` 
+                },
+                { 
+                    day: 'Παρασκευή', 
+                    workout: isRecoveryWeek ? 'Ξεκούραση ή cross-training' : 'Ξεκούραση ή 20′ easy' 
+                },
+                { 
+                    day: 'Σάββατο', 
+                    workout: `${w.repetitions}×${w.repetitionDistance} @ ${paces.repetition} (${w.repetitionDistance === '200m' ? '200m' : '400m'} ανάκαμψη)` 
+                },
+                { 
+                    day: 'Κυριακή', 
+                    workout: `${w.longRun}′ Long Run (${paces.easySlow}-${paces.easy})` 
+                }
+            ];
+        },
+        
+        calculateWeeklyVolume: function(workouts) {
+            let totalMinutes = 0;
+            
+            workouts.forEach(workout => {
+                const match = workout.workout.match(/(\d+)′/);
+                if (match) {
+                    totalMinutes += parseInt(match[1]);
+                }
+                
+                // Add estimated time for intervals/repetitions
+                const intervalMatch = workout.workout.match(/(\d+)×/);
+                if (intervalMatch && workout.day !== 'Κυριακή') {
+                    totalMinutes += parseInt(intervalMatch[1]) * 2; // estimate 2 minutes per rep
+                }
+            });
+            
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            
+            if (hours > 0) {
+                return `~${hours}h ${minutes}′`;
+            } else {
+                return `~${minutes}′`;
+            }
+        }
+    };
+    
+    // Main calculation function
+    function calculatePaces() {
+        const minutes = parseInt(document.getElementById('minutes').value) || 0;
+        const seconds = parseInt(document.getElementById('seconds').value) || 0;
+        const performanceType = document.getElementById('performance-type').value;
+        const trainingWeeks = parseInt(document.getElementById('training-weeks').value);
+        
+        if (minutes === 0 && seconds === 0) {
+            alert('Παρακαλώ εισάγετε έναν έγκυρο χρόνο');
+            return;
+        }
+        
+        const totalSeconds = minutes * 60 + seconds;
+        const vdot = JackDanielsCalculator.getVDOT(totalSeconds, performanceType);
+        const paces = JackDanielsCalculator.getTrainingPaces(vdot);
+        const predicted5K = JackDanielsCalculator.predictRaceTime(vdot);
+        
+        // Display VDOT
+        document.getElementById('vdot-score').textContent = vdot;
+        
+        // Display training paces
+        const paceData = [
+            { 
+                type: 'EASY (E)', 
+                pace: `${paces.easySlow} - ${paces.easyFast}`, 
+                description: 'Αερόβιες προπονήσεις - 65-79% VDOT' 
+            },
+            { 
+                type: 'MARATHON (M)', 
+                pace: paces.marathon, 
+                description: 'Ρυθμός μαραθώνιου - 84% VDOT' 
+            },
+            { 
+                type: 'THRESHOLD (T)', 
+                pace: paces.threshold, 
+                description: 'Lactate threshold - 88% VDOT' 
+            },
+            { 
+                type: 'INTERVAL (I)', 
+                pace: paces.interval, 
+                description: '5K ρυθμός - 100% VDOT' 
+            },
+            { 
+                type: 'REPETITION (R)', 
+                pace: paces.repetition, 
+                description: 'Ταχύτητα & νευρομυϊκή - 112% VDOT' 
+            }
+        ];
+        
+        const paceGrid = document.getElementById('pace-grid');
+        paceGrid.innerHTML = paceData.map(p => `
+            <div class="pace-card">
+                <div class="pace-type">${p.type}</div>
+                <div class="pace-value">${p.pace}</div>
+                <div class="pace-description">${p.description}</div>
+            </div>
+        `).join('');
+        
+        // Add race prediction
+        paceGrid.innerHTML += `
+            <div class="pace-card" style="border: 2px solid #d4af37; background: rgba(212, 175, 55, 0.15);">
+                <div class="pace-type">ΣΤΟΧΟΣ 5K</div>
+                <div class="pace-value">${predicted5K}</div>
+                <div class="pace-description">Προβλεπόμενη επίδοση</div>
+            </div>
+        `;
+        
+        // Generate progressive training plan
+        const schedule = document.getElementById('training-schedule');
+        schedule.innerHTML = TrainingPlanGenerator.generatePlan(trainingWeeks, paces);
+        
+        // Show results
+        document.getElementById('results').style.display = 'block';
+        
+        // Smooth scroll to results
+        document.getElementById('results').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+    
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('data:application/javascript;base64,c2VsZi5hZGRFdmVudExpc3RlbmVyKCdpbnN0YWxsJywgZXZlbnQgPT4gewogIGNvbnNvbGUubG9nKCdTVyBpbnN0YWxsZWQnKTsKfSk7CgpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2ZldGNoJywgZXZlbnQgPT4gewogIGV2ZW50LnJlc3BvbmRXaXRoKGZldGNoKGV2ZW50LnJlcXVlc3QpKTsKfSk7')
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.log('SW registration failed'));
+    }
+    
+    // Add keyboard support for better UX
+    document.addEventListener('DOMContentLoaded', function() {
+        const minutesInput = document.getElementById('minutes');
+        const secondsInput = document.getElementById('seconds');
+        
+        // Auto-focus next field
+        minutesInput.addEventListener('input', function() {
+            if (this.value.length >= 2) {
+                secondsInput.focus();
+            }
+        });
+        
+        // Enter key to calculate
+        [minutesInput, secondsInput].forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    calculatePaces();
+                }
+            });
+        });
+        
+        // Limit seconds to 59
+        secondsInput.addEventListener('input', function() {
+            if (this.value > 59) {
+                this.value = 59;
+            }
+        });
+    });
+</script>
 ```
+
+</body>
+</html>
