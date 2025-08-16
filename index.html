@@ -11,7 +11,7 @@
         h1 { margin: 0 0 10px 0; font-size: 2.1em; }
         h2 { color: #264653; margin-bottom: 14px;}
         label { display: block; margin-bottom: 12px; font-size: 1.08em;}
-        input[type="number"], select { padding: 8px; font-size: 1em; margin-bottom: 20px; width: 98%; box-sizing: border-box; border: 1px solid #b2bec3; border-radius: 6px;}
+        input[type="text"], select { padding: 8px; font-size: 1em; margin-bottom: 20px; width: 98%; box-sizing: border-box; border: 1px solid #b2bec3; border-radius: 6px;}
         button { background: #2a9d8f; color: #fff; border: none; border-radius: 6px; padding: 10px 0; font-size: 1.03em; width: 100%; cursor: pointer; }
         button:hover { background: #21867a; }
         .result { margin-top: 28px; background: #e0f7fa; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(42,157,143,0.09);}
@@ -37,8 +37,8 @@
                 <option value="hm">Ημιμαραθώνιος (21.1χλμ)</option>
                 <option value="marathon">Μαραθώνιος (42.2χλμ)</option>
             </select>
-            <label for="performance">Χρόνος τερματισμού (σε λεπτά):</label>
-            <input type="number" id="performance" name="performance" min="10" max="300" step="0.1" required>
+            <label for="performance">Χρόνος τερματισμού (ωω:λλ:δδ):</label>
+            <input type="text" id="performance" name="performance" pattern="^([0-9]{1,2}):([0-9]{2}):([0-9]{2})$" placeholder="π.χ. 00:45:30" required>
             <button type="submit">Υπολογισμός Προπόνησης</button>
         </form>
         <div id="trainingAdvice" class="result" style="display:none;"></div>
@@ -191,17 +191,27 @@
                     <li><b>Ρυθμός διαλειμματικής:</b> ${interval}</li>
                     <li><b>Ενδεικτικά εβδομαδιαία χιλιόμετρα:</b> ${weekly}</li>
                 </ul>
-                <b>Σύσταση:</b> Προσάρμοσε τις προπονήσεις σου ανάλογα με το επίπεδό σου και φρόντισε να αυξάνεις σταδιακά την ένταση και τη διάρκεια.
-            `;
+                <b>Σύσταση:</b> Προσάρμοσε τις προπονήσεις σου ανάλογα με το επίπεδό σου και φρόντισε να αυξάνεις σταδι[...]\n            `;
             return advice;
+        }
+
+        function parseTimeToMinutes(timeStr) {
+            // Accepted format: ωω:λλ:δδ (hh:mm:ss)
+            const match = /^([0-9]{1,2}):([0-9]{2}):([0-9]{2})$/.exec(timeStr);
+            if (!match) return NaN;
+            const hours = parseInt(match[1], 10);
+            const minutes = parseInt(match[2], 10);
+            const seconds = parseInt(match[3], 10);
+            return hours * 60 + minutes + seconds / 60;
         }
 
         document.getElementById('performanceForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const event = document.getElementById('event').value;
-            const perf = parseFloat(document.getElementById('performance').value);
+            const perfStr = document.getElementById('performance').value.trim();
+            const perf = parseTimeToMinutes(perfStr);
             if (isNaN(perf) || perf <= 0) {
-                document.getElementById('trainingAdvice').innerHTML = '<span style="color:red;">Παρακαλώ εισάγετε έγκυρη επίδοση.</span>';
+                document.getElementById('trainingAdvice').innerHTML = '<span style="color:red;">Παρακαλώ εισάγετε έγκυρη επίδοση στη μορφή ωω:λλ:δδ.</span>';
                 document.getElementById('trainingAdvice').style.display = 'block';
                 return;
             }
