@@ -542,6 +542,8 @@
         // Calculate race prediction for 5K
         const predicted5K = predictRaceTime(vdot, '5k');
         
+        console.log('VDOT:', vdot, 'Paces:', paces); // Debug log
+        
         // Display results
         displayResults(vdot, paces, trainingWeeks, predicted5K);
     }
@@ -599,6 +601,8 @@
     }
     
     function displayResults(vdot, paces, weeks, predicted5K) {
+        console.log('Display Results called with:', { vdot, paces, weeks, predicted5K }); // Debug
+        
         document.getElementById('vdot-score').textContent = vdot;
         
         const paceData = [
@@ -647,13 +651,22 @@
             </div>
         `;
         
+        console.log('About to generate training plan...'); // Debug
         generateTrainingPlan(weeks, paces);
         
+        console.log('Showing results...'); // Debug
         document.getElementById('results').style.display = 'block';
     }
     
     function generateTrainingPlan(weeks, paces) {
+        console.log('generateTrainingPlan called with:', weeks, paces); // Debug
+        
         const schedule = document.getElementById('training-schedule');
+        if (!schedule) {
+            console.error('training-schedule element not found');
+            return;
+        }
+        
         let planHTML = '';
         
         // Progressive training plan with proper periodization
@@ -661,6 +674,8 @@
             const phase = getTrainingPhase(week, weeks);
             const isTaperingPhase = week > weeks - 3; // Last 3 weeks are tapering
             const isRaceWeek = week === weeks;
+            
+            console.log(`Week ${week}: phase=${phase}, tapering=${isTaperingPhase}, race=${isRaceWeek}`); // Debug
             
             let weekTitle = `Εβδομάδα ${week}`;
             if (isRaceWeek) weekTitle += ' (ΑΓΩΝΑΣ)';
@@ -687,7 +702,9 @@
             planHTML += '</ul></div>';
         }
         
+        console.log('Generated HTML length:', planHTML.length); // Debug
         schedule.innerHTML = planHTML;
+        console.log('Training plan generated successfully'); // Debug
     }
     
     function getTrainingPhase(week, totalWeeks) {
@@ -698,13 +715,15 @@
     }
     
     function generateWeekWorkouts(week, totalWeeks, phase, paces, isRaceWeek, isTaperingPhase) {
+        console.log(`generateWeekWorkouts: week=${week}, phase=${phase}, race=${isRaceWeek}`); // Debug
+        
         if (isRaceWeek) {
             return [
-                { day: 'Δευτέρα', workout: `30\' Easy (${paces.easySlow}) + 6x100m strides` },
+                { day: 'Δευτέρα', workout: `30\' Easy (${paces.easySlow || paces.easy}) + 6x100m strides` },
                 { day: 'Τρίτη', workout: 'Ξεκούραση ή 20\' easy walking' },
-                { day: 'Τετάρτη', workout: `25\' Easy (${paces.easySlow}) + 4x200m @ I-pace (${paces.interval})` },
+                { day: 'Τετάρτη', workout: `25\' Easy (${paces.easySlow || paces.easy}) + 4x200m @ I-pace (${paces.interval})` },
                 { day: 'Πέμπτη', workout: 'Ξεκούραση - μόνο stretching' },
-                { day: 'Παρασκευή', workout: `15\' Easy (${paces.easySlow}) + 3x100m strides` },
+                { day: 'Παρασκευή', workout: `15\' Easy (${paces.easySlow || paces.easy}) + 3x100m strides` },
                 { day: 'Σάββατο', workout: 'Πλήρης ξεκούραση' },
                 { day: 'Κυριακή', workout: '🏁 ΑΓΩΝΑΣ 5K - Καλή επιτυχία!' }
             ];
@@ -714,13 +733,13 @@
             const intensity = week === totalWeeks - 2 ? 0.6 : 0.8; // More reduction 2 weeks before race
             
             return [
-                { day: 'Δευτέρα', workout: `${Math.round(40 * intensity)}\' Easy (${paces.easySlow})` },
+                { day: 'Δευτέρα', workout: `${Math.round(40 * intensity)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Τρίτη', workout: `${Math.round(3 * intensity)}x800m I-pace (${paces.interval}) με 2\' ανάκαμψη` },
-                { day: 'Τετάρτη', workout: `${Math.round(30 * intensity)}\' Easy (${paces.easySlow})` },
+                { day: 'Τετάρτη', workout: `${Math.round(30 * intensity)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Πέμπτη', workout: `20\' T-pace (${paces.threshold}) συνεχόμενο` },
                 { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
                 { day: 'Σάββατο', workout: `${Math.round(4 * intensity)}x300m R-pace (${paces.repetition}) με 2\' ανάκαμψη` },
-                { day: 'Κυριακή', workout: `${Math.round(50 * intensity)}\' Easy (${paces.easySlow})` }
+                { day: 'Κυριακή', workout: `${Math.round(50 * intensity)}\' Easy (${paces.easySlow || paces.easy})` }
             ];
         }
         
@@ -730,35 +749,38 @@
         
         const baseWorkouts = {
             base: [
-                { day: 'Δευτέρα', workout: `${Math.round(40 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Δευτέρα', workout: `${Math.round(40 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Τρίτη', workout: `${Math.round(3 * volumeMultiplier)}x1000m I-pace (${paces.interval}) με 400m ανάκαμψη` },
-                { day: 'Τετάρτη', workout: `${Math.round(35 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Τετάρτη', workout: `${Math.round(35 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Πέμπτη', workout: `${Math.round(20 * volumeMultiplier)}\' T-pace (${paces.threshold}) συνεχόμενο` },
                 { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
                 { day: 'Σάββατο', workout: `${Math.round(6 * volumeMultiplier)}x200m R-pace (${paces.repetition}) με 200m ανάκαμψη` },
-                { day: 'Κυριακή', workout: `${Math.round(60 * volumeMultiplier)}\' Easy (${paces.easySlow})` }
+                { day: 'Κυριακή', workout: `${Math.round(60 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` }
             ],
             build: [
-                { day: 'Δευτέρα', workout: `${Math.round(45 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Δευτέρα', workout: `${Math.round(45 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Τρίτη', workout: `${Math.round(5 * volumeMultiplier)}x1000m I-pace (${paces.interval}) με 300m ανάκαμψη` },
-                { day: 'Τετάρτη', workout: `${Math.round(40 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Τετάρτη', workout: `${Math.round(40 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Πέμπτη', workout: `2x${Math.round(12 * volumeMultiplier)}\' T-pace (${paces.threshold}) με 2\' ανάπαυση` },
                 { day: 'Παρασκευή', workout: 'Ξεκούραση ή cross-training' },
                 { day: 'Σάββατο', workout: `${Math.round(8 * volumeMultiplier)}x300m R-pace (${paces.repetition}) με 300m ανάκαμψη` },
-                { day: 'Κυριακή', workout: `${Math.round(70 * volumeMultiplier)}\' Easy (${paces.easySlow})` }
+                { day: 'Κυριακή', workout: `${Math.round(70 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` }
             ],
             peak: [
-                { day: 'Δευτέρα', workout: `${Math.round(50 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Δευτέρα', workout: `${Math.round(50 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Τρίτη', workout: `${Math.round(6 * volumeMultiplier)}x800m I-pace (${paces.interval}) με 400m ανάκαμψη` },
-                { day: 'Τετάρτη', workout: `${Math.round(35 * volumeMultiplier)}\' Easy (${paces.easySlow})` },
+                { day: 'Τετάρτη', workout: `${Math.round(35 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` },
                 { day: 'Πέμπτη', workout: `3x${Math.round(8 * volumeMultiplier)}\' T-pace (${paces.threshold}) με 90" ανάπαυση` },
                 { day: 'Παρασκευή', workout: 'Ξεκούραση' },
                 { day: 'Σάββατο', workout: `${Math.round(10 * volumeMultiplier)}x200m R-pace (${paces.repetition}) με 200m ανάκαμψη` },
-                { day: 'Κυριακή', workout: `${Math.round(60 * volumeMultiplier)}\' Easy (${paces.easySlow})` }
+                { day: 'Κυριακή', workout: `${Math.round(60 * volumeMultiplier)}\' Easy (${paces.easySlow || paces.easy})` }
             ]
         };
         
-        return baseWorkouts[phase] || baseWorkouts.base;
+        const selectedWorkouts = baseWorkouts[phase] || baseWorkouts.base;
+        console.log(`Selected workouts for phase ${phase}:`, selectedWorkouts); // Debug
+        
+        return selectedWorkouts;
     }
     
     // PWA Service Worker Registration
