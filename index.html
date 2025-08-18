@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Stef Coach: Δημιουργία προγραμμάτων προπόνησης δρομέων">
+    <meta name="theme-color" content="#003087">
     <title>Stef Coach</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/images/icon-192x192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -92,6 +97,12 @@
             margin: 8px 0;
             font-size: 0.9rem;
         }
+        .week-card input[type="text"] {
+            width: 60px;
+            margin-left: 10px;
+            padding: 5px;
+            border-radius: 5px;
+        }
         .total-km {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(8px);
@@ -107,6 +118,10 @@
         .total-km h3 {
             margin: 0;
             font-size: 1.2rem;
+        }
+        .print-button {
+            margin-top: 20px;
+            background: linear-gradient(135deg, #D4A017, #003087);
         }
         footer {
             margin-top: 20px;
@@ -159,8 +174,19 @@
     </div>
     <div class="results" id="results"></div>
     <div class="total-km" id="total-km"></div>
+    <button class="print-button" onclick="exportToPDF()" style="display: none;" id="pdfButton">Εκτύπωση σε PDF</button>
     <footer>Powered with love by Stef</footer>
     <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    console.log('Service Worker registered:', reg);
+                }).catch(err => {
+                    console.log('Service Worker registration failed:', err);
+                });
+            });
+        }
+
         function parseTime(str) {
             if (!str) return 0;
             let parts = str.split(':');
@@ -172,6 +198,7 @@
             }
             return seconds;
         }
+
         function calculateVDOT(distance, time_seconds) {
             if (time_seconds <= 0) return 0;
             let t = time_seconds / 60;
@@ -180,6 +207,7 @@
             let percent = 0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t);
             return re / percent;
         }
+
         function getPace(vdot, f) {
             let vo2 = vdot * f;
             let a = 0.000104;
@@ -190,6 +218,7 @@
             let v = (-b + Math.sqrt(disc)) / (2 * a);
             return 1000 / v;
         }
+
         function formatPace(pace) {
             if (pace === 0) return 'N/A';
             let min = Math.floor(pace);
@@ -197,6 +226,7 @@
             if (sec < 10) sec = '0' + sec;
             return `${min}:${sec}`;
         }
+
         function createProgram() {
             const distances = {
                 '5k': 5000,
@@ -282,14 +312,15 @@
                 totalKmSum += total_w;
                 let card = document.createElement('div');
                 card.className = 'week-card';
+                card.id = `week-${w}`;
                 card.innerHTML = `
                     <h3>Εβδομάδα ${w} ${w >= weeks - 1 ? '(Tapering)' : ''}</h3>
                     <p>Συνολικά km: ${total_w.toFixed(1)}</p>
-                    <p>Easy: ${easy_w.toFixed(1)} km at ${formatPace(pace_easy)} /km</p>
-                    <p>Threshold: ${thresh_w.toFixed(1)} km at ${formatPace(pace_thresh)} /km</p>
-                    <p>Interval: ${inter_w.toFixed(1)} km at ${formatPace(pace_inter)} /km</p>
-                    <p>Repetition: ${rep_w.toFixed(1)} km at ${formatPace(pace_rep)} /km</p>
-                    <p>Marathon Pace: ${marathon_w.toFixed(1)} km at ${formatPace(pace_marathon)} /km</p>
+                    <p>Easy: ${easy_w.toFixed(1)} km at <input type="text" id="easy_pace_${w}" value="${formatPace(pace_easy)}" /> /km</p>
+                    <p>Threshold: ${thresh_w.toFixed(1)} km at <input type="text" id="thresh_pace_${w}" value="${formatPace(pace_thresh)}" /> /km</p>
+                    <p>Interval: ${inter_w.toFixed(1)} km at <input type="text" id="inter_pace_${w}" value="${formatPace(pace_inter)}" /> /km</p>
+                    <p>Repetition: ${rep_w.toFixed(1)} km at <input type="text" id="rep_pace_${w}" value="${formatPace(pace_rep)}" /> /km</p>
+                    <p>Marathon Pace: ${marathon_w.toFixed(1)} km at <input type="text" id="marathon_pace_${w}" value="${formatPace(pace_marathon)}" /> /km</p>
                 `;
                 results.appendChild(card);
                 prev_total_km = total_w;
@@ -300,6 +331,43 @@
                 marathon_km = marathon_w;
             }
             totalKmDisplay.innerHTML = `<h3>Συνολικά χιλιόμετρα προγράμματος: ${totalKmSum.toFixed(1)} km</h3>`;
+            document.getElementById('pdfButton').style.display = 'block';
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 10;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+            doc.text('Stef Coach Πρόγραμμα Προπόνησης', 10, y);
+            y += 10;
+            const weeks = document.querySelectorAll('.week-card');
+            weeks.forEach((card, index) => {
+                if (index > 0) y += 5;
+                const title = card.querySelector('h3').textContent;
+                doc.text(title, 10, y);
+                y += 10;
+                const paragraphs = card.querySelectorAll('p');
+                paragraphs.forEach(p => {
+                    let text = p.textContent.replace(/at/, 'at');
+                    if (p.querySelector('input')) {
+                        const inputValue = p.querySelector('input').value;
+                        text = text.replace(/at .+ /, `at ${inputValue} `);
+                    }
+                    doc.text(text, 10, y);
+                    y += 7;
+                    if (y > 280) {
+                        doc.addPage();
+                        y = 10;
+                    }
+                });
+            });
+            const total = document.getElementById('total-km').textContent;
+            doc.text(total, 10, y);
+            y += 10;
+            doc.text('Powered with love by Stef', 10, y);
+            doc.save('Stef_Coach_Program.pdf');
         }
     </script>
 </body>
