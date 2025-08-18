@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="el">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Stef Coach: Δημιουργία προγραμμάτων προπόνησης δρομέων">
+    <meta name="description" content="Stef Coach: Create running training programs">
     <meta name="theme-color" content="#003087">
     <title>Stef Coach</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
@@ -44,7 +44,7 @@
             margin-bottom: 5px;
             display: block;
         }
-        input {
+        input, select {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: #FFFFFF;
@@ -55,7 +55,7 @@
             font-family: 'Orbitron', sans-serif;
             font-size: 1rem;
         }
-        input:focus {
+        input:focus, select:focus {
             box-shadow: 0 0 8px rgba(212, 160, 23, 0.5);
             outline: none;
             border-color: #D4A017;
@@ -130,6 +130,12 @@
             color: rgba(255, 255, 255, 0.7);
             text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
         }
+        #print-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
         @keyframes float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-8px); }
@@ -191,7 +197,6 @@
     </style>
 </head>
 <body>
-    <h1>Stef Coach</h1>
     <div class="form-container">
         <label>5K Time (mm:ss)</label>
         <input id="5k" placeholder="e.g. 20:00">
@@ -217,12 +222,25 @@
         <input id="rep_percent" type="number" placeholder="e.g. 10">
         <label>Marathon Pace % (e.g. 10 for 10%)</label>
         <input id="marathon_percent" type="number" placeholder="e.g. 10">
-        <button onclick="createProgram()">Δημιουργία Προγράμματος</button>
+        <label>Target Race</label>
+        <select id="target_race">
+            <option value="">No Target</option>
+            <option value="5k">5K</option>
+            <option value="10k">10K</option>
+            <option value="hm">Half Marathon</option>
+            <option value="m">Marathon</option>
+        </select>
+        <label>Target Time (mm:ss or hh:mm:ss)</label>
+        <input id="target_time" placeholder="e.g. 18:00">
+        <button onclick="createProgram()">Create Program</button>
     </div>
-    <div class="results" id="results"></div>
-    <div class="total-km" id="total-km"></div>
-    <button class="print-button" onclick="exportToPDF()" style="display: none;" id="pdfButton">Εκτύπωση σε PDF</button>
-    <footer>Powered with love by Stef</footer>
+    <div id="print-content">
+        <h1 id="title">Stef Coach</h1>
+        <div class="results" id="results"></div>
+        <div class="total-km" id="total-km"></div>
+        <footer id="footer">Powered with love by Stef</footer>
+    </div>
+    <button class="print-button" onclick="exportToPDF()" style="display: none;" id="pdfButton">Export to PDF</button>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -289,19 +307,19 @@
                     vdots.push(calculateVDOT(distances[id], time));
                 }
             });
-            let vdot = vdots.length > 0 ? Math.max(...vdots) : 0;
-            if (vdot === 0) {
-                alert('Παρακαλώ εισάγετε τουλάχιστον μία επίδοση.');
+            let current_vdot = vdots.length > 0 ? Math.max(...vdots) : 0;
+            if (current_vdot === 0) {
+                alert('Please enter at least one performance.');
                 return;
             }
             let weeks = parseInt(document.getElementById('weeks').value);
             if (isNaN(weeks) || weeks <= 0) {
-                alert('Εισάγετε έγκυρο αριθμό εβδομάδων.');
+                alert('Enter valid number of weeks.');
                 return;
             }
             let weekly_increase = parseFloat(document.getElementById('weekly_increase').value) || 0;
             if (weekly_increase < 0) {
-                alert('Το ποσοστό εβδομαδιαίας αύξησης πρέπει να είναι μη αρνητικό.');
+                alert('The weekly increase percentage must be non-negative.');
                 return;
             }
             let total_km = parseFloat(document.getElementById('total_km').value) || 0;
@@ -312,12 +330,21 @@
             let marathon_percent = parseFloat(document.getElementById('marathon_percent').value) || 0;
             let total_percent = easy_percent + thresh_percent + inter_percent + rep_percent + marathon_percent;
             if (total_km <= 0) {
-                alert('Εισάγετε έγκυρα συνολικά χιλιόμετρα.');
+                alert('Enter valid total km.');
                 return;
             }
             if (total_percent !== 100) {
-                alert('Το άθροισμα των ποσοστών πρέπει να είναι 100%.');
+                alert('The sum of percentages must be 100%.');
                 return;
+            }
+            let target_race = document.getElementById('target_race').value;
+            let target_time_str = document.getElementById('target_time').value;
+            let target_vdot = 0;
+            if (target_race && target_time_str) {
+                let target_time = parseTime(target_time_str);
+                if (target_time > 0) {
+                    target_vdot = calculateVDOT(distances[target_race], target_time);
+                }
             }
             let easy_km = total_km * (easy_percent / 100);
             let thresh_km = total_km * (thresh_percent / 100);
@@ -329,11 +356,6 @@
             let f_inter = 1.0;
             let f_rep = 1.08;
             let f_marathon = 0.85;
-            let pace_easy = getPace(vdot, f_easy);
-            let pace_thresh = getPace(vdot, f_thresh);
-            let pace_inter = getPace(vdot, f_inter);
-            let pace_rep = getPace(vdot, f_rep);
-            let pace_marathon = getPace(vdot, f_marathon);
             let results = document.getElementById('results');
             let totalKmDisplay = document.getElementById('total-km');
             results.innerHTML = '';
@@ -342,13 +364,24 @@
             let prev_total_km = total_km;
             let increase_factor = 1 + (weekly_increase / 100);
             for (let w = 1; w <= weeks; w++) {
+                let vdot_w = current_vdot;
+                if (target_vdot > 0) {
+                    let progress = (w - 1) / (weeks - 3);
+                    progress = Math.min(progress, 1);
+                    vdot_w = current_vdot + (target_vdot - current_vdot) * progress;
+                }
+                let pace_easy = getPace(vdot_w, f_easy);
+                let pace_thresh = getPace(vdot_w, f_thresh);
+                let pace_inter = getPace(vdot_w, f_inter);
+                let pace_rep = getPace(vdot_w, f_rep);
+                let pace_marathon = getPace(vdot_w, f_marathon);
                 let scale;
                 if (w === weeks - 1) {
-                    scale = 0.75; // 25% reduction for second-to-last week
+                    scale = 0.75;
                 } else if (w === weeks) {
-                    scale = 0.5; // 50% reduction for last week
+                    scale = 0.5;
                 } else {
-                    scale = Math.pow(increase_factor, w - 1); // Custom % increase
+                    scale = Math.pow(increase_factor, w - 1);
                 }
                 let total_w = prev_total_km * scale;
                 let easy_w = easy_km * scale;
@@ -361,8 +394,8 @@
                 card.className = 'week-card';
                 card.id = `week-${w}`;
                 card.innerHTML = `
-                    <h3>Εβδομάδα ${w} ${w >= weeks - 1 ? '(Tapering)' : ''}</h3>
-                    <p>Συνολικά km: ${total_w.toFixed(1)}</p>
+                    <h3>Week ${w} ${w >= weeks - 1 ? '(Tapering)' : ''}</h3>
+                    <p>Total km: ${total_w.toFixed(1)}</p>
                     <p>Easy: ${easy_w.toFixed(1)} km at <input type="text" id="easy_pace_${w}" value="${formatPace(pace_easy)}" /> /km</p>
                     <p>Threshold: ${thresh_w.toFixed(1)} km at <input type="text" id="thresh_pace_${w}" value="${formatPace(pace_thresh)}" /> /km</p>
                     <p>Interval: ${inter_w.toFixed(1)} km at <input type="text" id="inter_pace_${w}" value="${formatPace(pace_inter)}" /> /km</p>
@@ -377,7 +410,7 @@
                 rep_km = rep_w;
                 marathon_km = marathon_w;
             }
-            totalKmDisplay.innerHTML = `<h3>Συνολικά χιλιόμετρα προγράμματος: ${totalKmSum.toFixed(1)} km</h3>`;
+            totalKmDisplay.innerHTML = `<h3>Total program km: ${totalKmSum.toFixed(1)} km</h3>`;
             document.getElementById('pdfButton').style.display = 'block';
         }
 
@@ -388,9 +421,7 @@
                 unit: 'mm',
                 format: 'a4'
             });
-            const content = document.querySelector('#results');
-            const totalKm = document.querySelector('#total-km');
-            const footerText = document.querySelector('footer').textContent;
+            const content = document.getElementById('print-content');
             const canvas = await html2canvas(content, {
                 scale: 2,
                 backgroundColor: null,
@@ -402,16 +433,18 @@
             const imgWidth = canvas.width;
             const imgHeight = canvas.height;
             const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-            const imgX = (pdfWidth - imgWidth * ratio) / 2;
-            const imgY = 30;
-            doc.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-            if (imgHeight * ratio > pdfHeight - 60) {
+            const scaledWidth = imgWidth * ratio;
+            const scaledHeight = imgHeight * ratio;
+            let position = 0;
+            let heightLeft = scaledHeight;
+            doc.addImage(imgData, 'PNG', 0, position, scaledWidth, scaledHeight);
+            heightLeft -= pdfHeight;
+            while (heightLeft > 0) {
+                position = heightLeft - scaledHeight;
                 doc.addPage();
-                doc.addImage(imgData, 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio, null, 'FAST', 0, pdfHeight - 60);
+                doc.addImage(imgData, 'PNG', 0, position, scaledWidth, scaledHeight);
+                heightLeft -= pdfHeight;
             }
-            doc.setFontSize(12);
-            doc.text(totalKm.textContent, 10, pdfHeight - 30);
-            doc.text(footerText, 10, pdfHeight - 20);
             doc.save('Stef_Coach_Program.pdf');
         }
     </script>
