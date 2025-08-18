@@ -10,6 +10,7 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/images/icon-192x192.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -139,6 +140,52 @@
             }
             h1 {
                 font-size: 2rem;
+            }
+        }
+        @media print {
+            body {
+                background: white;
+                color: black;
+                padding: 0;
+                margin: 0;
+            }
+            .form-container, button, footer, .print-button {
+                display: none;
+            }
+            h1 {
+                text-shadow: none;
+                color: black;
+                text-align: center;
+                font-size: 2rem;
+            }
+            .results {
+                display: block;
+                width: 100%;
+            }
+            .week-card {
+                background: white;
+                border: 1px solid black;
+                box-shadow: none;
+                animation: none;
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+                padding: 10px;
+            }
+            .week-card input[type="text"] {
+                border: none;
+                background: transparent;
+                color: black;
+                width: auto;
+            }
+            .total-km {
+                background: white;
+                border: 1px solid black;
+                box-shadow: none;
+                text-align: center;
+                margin-top: 20px;
+            }
+            .total-km h3 {
+                color: black;
             }
         }
     </style>
@@ -334,39 +381,37 @@
             document.getElementById('pdfButton').style.display = 'block';
         }
 
-        function exportToPDF() {
+        async function exportToPDF() {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            let y = 10;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(12);
-            doc.text('Stef Coach Πρόγραμμα Προπόνησης', 10, y);
-            y += 10;
-            const weeks = document.querySelectorAll('.week-card');
-            weeks.forEach((card, index) => {
-                if (index > 0) y += 5;
-                const title = card.querySelector('h3').textContent;
-                doc.text(title, 10, y);
-                y += 10;
-                const paragraphs = card.querySelectorAll('p');
-                paragraphs.forEach(p => {
-                    let text = p.textContent.replace(/at/, 'at');
-                    if (p.querySelector('input')) {
-                        const inputValue = p.querySelector('input').value;
-                        text = text.replace(/at .+ /, `at ${inputValue} `);
-                    }
-                    doc.text(text, 10, y);
-                    y += 7;
-                    if (y > 280) {
-                        doc.addPage();
-                        y = 10;
-                    }
-                });
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
             });
-            const total = document.getElementById('total-km').textContent;
-            doc.text(total, 10, y);
-            y += 10;
-            doc.text('Powered with love by Stef', 10, y);
+            const content = document.querySelector('#results');
+            const totalKm = document.querySelector('#total-km');
+            const footerText = document.querySelector('footer').textContent;
+            const canvas = await html2canvas(content, {
+                scale: 2,
+                backgroundColor: null,
+                useCORS: true
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdfWidth = doc.internal.pageSize.getWidth();
+            const pdfHeight = doc.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const imgX = (pdfWidth - imgWidth * ratio) / 2;
+            const imgY = 30;
+            doc.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+            if (imgHeight * ratio > pdfHeight - 60) {
+                doc.addPage();
+                doc.addImage(imgData, 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio, null, 'FAST', 0, pdfHeight - 60);
+            }
+            doc.setFontSize(12);
+            doc.text(totalKm.textContent, 10, pdfHeight - 30);
+            doc.text(footerText, 10, pdfHeight - 20);
             doc.save('Stef_Coach_Program.pdf');
         }
     </script>
