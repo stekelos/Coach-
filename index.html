@@ -9,8 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/images/icon-192x192.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -120,21 +118,11 @@
             margin: 0;
             font-size: 1.2rem;
         }
-        .print-button {
-            margin-top: 20px;
-            background: linear-gradient(135deg, #D4A017, #003087);
-        }
         footer {
             margin-top: 20px;
             font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.7);
             text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
-        }
-        #print-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
         }
         @keyframes float {
             0%, 100% { transform: translateY(0); }
@@ -148,55 +136,10 @@
                 font-size: 2rem;
             }
         }
-        @media print {
-            body {
-                background: white;
-                color: black;
-                padding: 0;
-                margin: 0;
-            }
-            .form-container, button, footer, .print-button {
-                display: none;
-            }
-            h1 {
-                text-shadow: none;
-                color: black;
-                text-align: center;
-                font-size: 2rem;
-            }
-            .results {
-                display: block;
-                width: 100%;
-            }
-            .week-card {
-                background: white;
-                border: 1px solid black;
-                box-shadow: none;
-                animation: none;
-                page-break-inside: avoid;
-                margin-bottom: 20px;
-                padding: 10px;
-            }
-            .week-card input[type="text"] {
-                border: none;
-                background: transparent;
-                color: black;
-                width: auto;
-            }
-            .total-km {
-                background: white;
-                border: 1px solid black;
-                box-shadow: none;
-                text-align: center;
-                margin-top: 20px;
-            }
-            .total-km h3 {
-                color: black;
-            }
-        }
     </style>
 </head>
 <body>
+    <h1>Stef Coach</h1>
     <div class="form-container">
         <label>5K Time (mm:ss)</label>
         <input id="5k" placeholder="e.g. 20:00">
@@ -210,8 +153,10 @@
         <input id="weeks" type="number" placeholder="e.g. 12">
         <label>Weekly Increase % (e.g. 5 for 5%)</label>
         <input id="weekly_increase" type="number" placeholder="e.g. 5">
-        <label>Total km (for base week)</label>
-        <input id="total_km" type="number" placeholder="e.g. 60">
+        <label>Base km (for first week)</label>
+        <input id="base_km" type="number" placeholder="e.g. 60">
+        <label>Peak km (before tapering)</label>
+        <input id="peak_km" type="number" placeholder="e.g. 80">
         <label>Easy % (e.g. 50 for 50%)</label>
         <input id="easy_percent" type="number" placeholder="e.g. 50">
         <label>Threshold % (e.g. 20 for 20%)</label>
@@ -234,13 +179,9 @@
         <input id="target_time" placeholder="e.g. 18:00">
         <button onclick="createProgram()">Create Program</button>
     </div>
-    <div id="print-content">
-        <h1 id="title">Stef Coach</h1>
-        <div class="results" id="results"></div>
-        <div class="total-km" id="total-km"></div>
-        <footer id="footer">Powered with love by Stef</footer>
-    </div>
-    <button class="print-button" onclick="exportToPDF()" style="display: none;" id="pdfButton">Export to PDF</button>
+    <div class="results" id="results"></div>
+    <div class="total-km" id="total-km"></div>
+    <footer>Powered with love by Stef</footer>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -322,15 +263,20 @@
                 alert('The weekly increase percentage must be non-negative.');
                 return;
             }
-            let total_km = parseFloat(document.getElementById('total_km').value) || 0;
+            let base_km = parseFloat(document.getElementById('base_km').value) || 0;
+            let peak_km = parseFloat(document.getElementById('peak_km').value) || base_km;
             let easy_percent = parseFloat(document.getElementById('easy_percent').value) || 0;
             let thresh_percent = parseFloat(document.getElementById('thresh_percent').value) || 0;
             let inter_percent = parseFloat(document.getElementById('inter_percent').value) || 0;
             let rep_percent = parseFloat(document.getElementById('rep_percent').value) || 0;
             let marathon_percent = parseFloat(document.getElementById('marathon_percent').value) || 0;
             let total_percent = easy_percent + thresh_percent + inter_percent + rep_percent + marathon_percent;
-            if (total_km <= 0) {
-                alert('Enter valid total km.');
+            if (base_km <= 0 || peak_km <= 0) {
+                alert('Enter valid base and peak km.');
+                return;
+            }
+            if (peak_km < base_km) {
+                alert('Peak km must be greater than or equal to base km.');
                 return;
             }
             if (total_percent !== 100) {
@@ -346,11 +292,11 @@
                     target_vdot = calculateVDOT(distances[target_race], target_time);
                 }
             }
-            let easy_km = total_km * (easy_percent / 100);
-            let thresh_km = total_km * (thresh_percent / 100);
-            let inter_km = total_km * (inter_percent / 100);
-            let rep_km = total_km * (rep_percent / 100);
-            let marathon_km = total_km * (marathon_percent / 100);
+            let easy_km = base_km * (easy_percent / 100);
+            let thresh_km = base_km * (thresh_percent / 100);
+            let inter_km = base_km * (inter_percent / 100);
+            let rep_km = base_km * (rep_percent / 100);
+            let marathon_km = base_km * (marathon_percent / 100);
             let f_easy = 0.65;
             let f_thresh = 0.91;
             let f_inter = 1.0;
@@ -361,8 +307,8 @@
             results.innerHTML = '';
             totalKmDisplay.innerHTML = '';
             let totalKmSum = 0;
-            let prev_total_km = total_km;
-            let increase_factor = 1 + (weekly_increase / 100);
+            let prev_total_km = base_km;
+            let non_taper_weeks = weeks - 2 > 0 ? weeks - 2 : 1;
             for (let w = 1; w <= weeks; w++) {
                 let vdot_w = current_vdot;
                 if (target_vdot > 0) {
@@ -381,7 +327,10 @@
                 } else if (w === weeks) {
                     scale = 0.5;
                 } else {
-                    scale = Math.pow(increase_factor, w - 1);
+                    let progress = (w - 1) / (non_taper_weeks - 1);
+                    let wave_factor = 0.1 * Math.sin(2 * Math.PI * (w - 1) / 4);
+                    let km_progress = base_km + (peak_km - base_km) * progress;
+                    scale = (km_progress + wave_factor * (peak_km - base_km)) / prev_total_km;
                 }
                 let total_w = prev_total_km * scale;
                 let easy_w = easy_km * scale;
@@ -411,41 +360,6 @@
                 marathon_km = marathon_w;
             }
             totalKmDisplay.innerHTML = `<h3>Total program km: ${totalKmSum.toFixed(1)} km</h3>`;
-            document.getElementById('pdfButton').style.display = 'block';
-        }
-
-        async function exportToPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-            const content = document.getElementById('print-content');
-            const canvas = await html2canvas(content, {
-                scale: 2,
-                backgroundColor: null,
-                useCORS: true
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const pdfWidth = doc.internal.pageSize.getWidth();
-            const pdfHeight = doc.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-            const scaledWidth = imgWidth * ratio;
-            const scaledHeight = imgHeight * ratio;
-            let position = 0;
-            let heightLeft = scaledHeight;
-            doc.addImage(imgData, 'PNG', 0, position, scaledWidth, scaledHeight);
-            heightLeft -= pdfHeight;
-            while (heightLeft > 0) {
-                position = heightLeft - scaledHeight;
-                doc.addPage();
-                doc.addImage(imgData, 'PNG', 0, position, scaledWidth, scaledHeight);
-                heightLeft -= pdfHeight;
-            }
-            doc.save('Stef_Coach_Program.pdf');
         }
     </script>
 </body>
