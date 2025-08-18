@@ -108,6 +108,12 @@
             margin: 0;
             font-size: 1.2rem;
         }
+        footer {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+        }
         @keyframes float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-8px); }
@@ -139,18 +145,21 @@
         <input id="weekly_increase" type="number" placeholder="e.g. 5">
         <label>Total km (for base week)</label>
         <input id="total_km" type="number" placeholder="e.g. 60">
-        <label>Easy % (e.g. 60 for 60%)</label>
-        <input id="easy_percent" type="number" placeholder="e.g. 60">
+        <label>Easy % (e.g. 50 for 50%)</label>
+        <input id="easy_percent" type="number" placeholder="e.g. 50">
         <label>Threshold % (e.g. 20 for 20%)</label>
         <input id="thresh_percent" type="number" placeholder="e.g. 20">
         <label>Interval % (e.g. 10 for 10%)</label>
         <input id="inter_percent" type="number" placeholder="e.g. 10">
         <label>Repetition % (e.g. 10 for 10%)</label>
         <input id="rep_percent" type="number" placeholder="e.g. 10">
+        <label>Marathon Pace % (e.g. 10 for 10%)</label>
+        <input id="marathon_percent" type="number" placeholder="e.g. 10">
         <button onclick="createProgram()">Δημιουργία Προγράμματος</button>
     </div>
     <div class="results" id="results"></div>
     <div class="total-km" id="total-km"></div>
+    <footer>Powered with love by Stef</footer>
     <script>
         function parseTime(str) {
             if (!str) return 0;
@@ -223,7 +232,8 @@
             let thresh_percent = parseFloat(document.getElementById('thresh_percent').value) || 0;
             let inter_percent = parseFloat(document.getElementById('inter_percent').value) || 0;
             let rep_percent = parseFloat(document.getElementById('rep_percent').value) || 0;
-            let total_percent = easy_percent + thresh_percent + inter_percent + rep_percent;
+            let marathon_percent = parseFloat(document.getElementById('marathon_percent').value) || 0;
+            let total_percent = easy_percent + thresh_percent + inter_percent + rep_percent + marathon_percent;
             if (total_km <= 0) {
                 alert('Εισάγετε έγκυρα συνολικά χιλιόμετρα.');
                 return;
@@ -236,14 +246,17 @@
             let thresh_km = total_km * (thresh_percent / 100);
             let inter_km = total_km * (inter_percent / 100);
             let rep_km = total_km * (rep_percent / 100);
+            let marathon_km = total_km * (marathon_percent / 100);
             let f_easy = 0.65;
             let f_thresh = 0.91;
             let f_inter = 1.0;
             let f_rep = 1.08;
+            let f_marathon = 0.85;
             let pace_easy = getPace(vdot, f_easy);
             let pace_thresh = getPace(vdot, f_thresh);
             let pace_inter = getPace(vdot, f_inter);
             let pace_rep = getPace(vdot, f_rep);
+            let pace_marathon = getPace(vdot, f_marathon);
             let results = document.getElementById('results');
             let totalKmDisplay = document.getElementById('total-km');
             results.innerHTML = '';
@@ -265,6 +278,7 @@
                 let thresh_w = thresh_km * scale;
                 let inter_w = inter_km * scale;
                 let rep_w = rep_km * scale;
+                let marathon_w = marathon_km * scale;
                 totalKmSum += total_w;
                 let card = document.createElement('div');
                 card.className = 'week-card';
@@ -275,6 +289,7 @@
                     <p>Threshold: ${thresh_w.toFixed(1)} km at ${formatPace(pace_thresh)} /km</p>
                     <p>Interval: ${inter_w.toFixed(1)} km at ${formatPace(pace_inter)} /km</p>
                     <p>Repetition: ${rep_w.toFixed(1)} km at ${formatPace(pace_rep)} /km</p>
+                    <p>Marathon Pace: ${marathon_w.toFixed(1)} km at ${formatPace(pace_marathon)} /km</p>
                 `;
                 results.appendChild(card);
                 prev_total_km = total_w;
@@ -282,6 +297,7 @@
                 thresh_km = thresh_w;
                 inter_km = inter_w;
                 rep_km = rep_w;
+                marathon_km = marathon_w;
             }
             totalKmDisplay.innerHTML = `<h3>Συνολικά χιλιόμετρα προγράμματος: ${totalKmSum.toFixed(1)} km</h3>`;
         }
